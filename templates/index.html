@@ -831,6 +831,12 @@
               </span>
             </a>
           </li>
+
+          <li class="nav-item" id="nav-workspace" style="display:none;">
+            <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#personalWorkspaceModal" onclick="loadPersonalWorkspace()">
+              <i class="fas fa-briefcase me-1"></i>Il mio spazio
+            </a>
+          </li>
           
           <li class="nav-item dropdown" id="nav-user" style="display:none;">
             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -981,7 +987,7 @@
               <button class="btn btn-outline-primary btn-sm" onclick="showCoursesManager()">
                 <i class="fas fa-book me-2"></i>Gestisci Corsi
               </button>
-              <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createCourseModal">
+              <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createCourseModal" onclick="openCreateCourseModal()">
                 <i class="fas fa-plus me-2"></i>Crea Nuovo Corso
               </button>
               <button class="btn btn-outline-primary btn-sm" onclick="loadCourseStats()">
@@ -1177,6 +1183,61 @@
     </div>
   </div>
 
+  <!-- Spazio di lavoro personale (note, link, file) -->
+  <div class="modal fade" id="personalWorkspaceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-briefcase me-2"></i>Il mio spazio</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small">Archivia note, link utili, codice e file. Qui puoi organizzare il materiale mentre segui i corsi dalla sezione <strong>Corsi</strong>.</p>
+          <div id="personal-workspace-list" class="mb-4">
+            <div class="text-center p-3"><div class="spinner"></div><p class="small text-muted mb-0">Caricamento…</p></div>
+          </div>
+          <hr>
+          <h6 class="mb-3"><i class="fas fa-plus-circle me-2"></i>Aggiungi elemento</h6>
+          <form id="personal-workspace-add-form" onsubmit="submitPersonalWorkspaceBlock(event)">
+            <div class="row g-2 mb-2">
+              <div class="col-md-5">
+                <label class="form-label small">Tipo</label>
+                <select class="form-select form-select-sm" id="ws-block-type" onchange="onWorkspaceBlockTypeChange()">
+                  <option value="note">Nota</option>
+                  <option value="link">Link</option>
+                  <option value="code">Snippet codice</option>
+                  <option value="container">Cartella / sezione</option>
+                  <option value="image">Immagine (URL o file)</option>
+                  <option value="file">File allegato</option>
+                  <option value="video">Video (URL o file)</option>
+                </select>
+              </div>
+              <div class="col-md-7" id="ws-title-wrap">
+                <label class="form-label small">Titolo</label>
+                <input type="text" class="form-control form-control-sm" id="ws-block-title" placeholder="Titolo (obbligatorio per le sezioni)">
+              </div>
+            </div>
+            <div class="mb-2" id="ws-content-wrap">
+              <label class="form-label small">Testo / contenuto</label>
+              <textarea class="form-control form-control-sm" id="ws-block-content" rows="3" placeholder="Scrivi qui la nota o il codice…"></textarea>
+            </div>
+            <div class="mb-2" id="ws-url-wrap" style="display:none;">
+              <label class="form-label small">URL</label>
+              <input type="url" class="form-control form-control-sm" id="ws-block-url" placeholder="https://…">
+            </div>
+            <div class="mb-2" id="ws-file-wrap" style="display:none;">
+              <label class="form-label small">File</label>
+              <input type="file" class="form-control form-control-sm" id="ws-block-file">
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary" id="ws-add-btn">
+              <i class="fas fa-save me-1"></i>Salva nel mio spazio
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Account Settings Modal -->
   <div class="modal fade" id="settingsModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -1272,7 +1333,7 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content glass-card">
         <div class="modal-header">
-          <h5 class="modal-title">
+          <h5 class="modal-title" id="create-course-modal-title">
             <i class="fas fa-plus me-2"></i>Crea Nuovo Corso
           </h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -1351,10 +1412,18 @@
             <div class="row">
               <div class="col-md-8">
                 <div class="mb-3">
-                  <label for="course-thumbnail" class="form-label">URL Thumbnail</label>
+                  <label for="course-thumbnail-file" class="form-label">Immagine copertina</label>
+                  <input type="file" class="form-control" id="course-thumbnail-file" accept="image/*">
+                  <small class="text-muted d-block mt-1">Carica un file dal computer (consigliato) oppure incolla un URL sotto.</small>
+                  <div class="mt-2" id="course-thumbnail-preview-wrap" style="display:none;">
+                    <img id="course-thumbnail-preview" alt="Anteprima" class="rounded" style="max-height:120px;max-width:100%;object-fit:cover;">
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label for="course-thumbnail" class="form-label">Oppure URL immagine</label>
                   <input type="url" class="form-control" id="course-thumbnail" 
                          placeholder="https://images.unsplash.com/photo-...">
-                  <small class="text-muted">Usa Unsplash o link immagine diretto</small>
+                  <small class="text-muted">Unsplash o link diretto all’immagine</small>
                 </div>
               </div>
               <div class="col-md-4">
@@ -1387,6 +1456,31 @@
     </div>
   </div>
 
+  <!-- Link condivisibile dopo creazione corso -->
+  <div class="modal fade" id="courseShareModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-link me-2"></i>Condividi il corso</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-2">Invia questo link ai corsisti (dopo il login potranno aprire il corso e iscriversi da <strong>Corsi</strong>).</p>
+          <div class="input-group mb-2">
+            <input type="text" class="form-control font-monospace small" id="course-share-url-input" readonly>
+            <button type="button" class="btn btn-outline-primary" onclick="copyCourseShareUrl()" title="Copia">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+          <p class="text-muted small mb-0">Per corsi a pagamento: l’iscrizione avviene dalla lista <strong>Corsi</strong>; eventuali pagamenti online potranno essere aggiunti in seguito.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Fatto</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Courses Manager Modal -->
   <div class="modal fade" id="coursesManagerModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
@@ -1404,7 +1498,7 @@
               <small class="text-muted">Gestisci tutti i corsi della piattaforma</small>
             </div>
             <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createCourseModal" 
-                    onclick="bootstrap.Modal.getInstance(document.getElementById('coursesManagerModal')).hide()">
+                    onclick="bootstrap.Modal.getInstance(document.getElementById('coursesManagerModal')).hide(); openCreateCourseModal();">
               <i class="fas fa-plus me-1"></i>Nuovo Corso
             </button>
           </div>
@@ -1528,6 +1622,11 @@
                     <i class="fas fa-user-plus me-2"></i>Iscriviti al Corso
                   </button>
                   <div class="enrolled-students" id="course-students-count">0 studenti iscritti</div>
+                  <div id="course-admin-actions" class="mt-2" style="display:none;">
+                    <button type="button" class="btn btn-outline-info w-100 btn-sm" onclick="openCourseShareModalForCurrentCourse()">
+                      <i class="fas fa-link me-1"></i>Link per corsisti (copia)
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1686,7 +1785,7 @@
 
     // ======== 🔔 NOTIFICHE FUNCTIONS - SISTEMA COMPLETO ========
     
-    // Carica notifiche dell'utente
+    // Carica notifiche dell'utente (API /api/me/notifications)
     async function loadNotifications() {
       if (!currentUser) return;
       
@@ -1694,13 +1793,12 @@
       container.innerHTML = '<div class="text-center p-4"><div class="spinner"></div><p>Caricamento notifiche...</p></div>';
       
       try {
-        const res = await fetch('/api/notifications');
+        const res = await fetch('/api/me/notifications?limit=100');
         const data = await res.json();
         
         if (res.ok) {
-          console.log('🔔 Notifications loaded:', data.notifications.length);
-          renderNotifications(data.notifications);
-          updateNotificationsBadge(data.unread_count);
+          renderNotifications(data.notifications || []);
+          updateNotificationsBadge(data.unread_count || 0);
         } else {
           container.innerHTML = '<div class="text-center p-4 text-danger">Errore caricamento notifiche</div>';
         }
@@ -1709,8 +1807,18 @@
         container.innerHTML = '<div class="text-center p-4 text-danger">Errore di connessione</div>';
       }
     }
+
+    function notificationMessage(n) {
+      const actor = n.actor;
+      const name = actor ? (`${actor.nome || ''} ${actor.cognome || ''}`.trim() || actor.username) : 'Qualcuno';
+      switch (n.notification_type) {
+        case 'post_like': return `${name} ha messo Mi piace al tuo post`;
+        case 'post_comment': return `${name} ha commentato il tuo post`;
+        case 'comment_reply': return `${name} ha risposto al tuo commento`;
+        default: return 'Nuova attività';
+      }
+    }
     
-    // Renderizza le notifiche nel modal
     function renderNotifications(notifications) {
       const container = document.getElementById('notifications-list');
       
@@ -1727,21 +1835,21 @@
       
       container.innerHTML = notifications.map(notification => {
         const isUnread = !notification.is_read;
-        const iconClass = getNotificationIcon(notification.type);
+        const t = notification.notification_type || '';
+        const iconClass = getNotificationIcon(t);
+        const msg = notificationMessage(notification);
         
         return `
           <div class="notification-item ${isUnread ? 'unread' : ''}" 
                data-notification-id="${notification.id}"
                onclick="markNotificationRead(${notification.id})">
             <div class="d-flex align-items-start">
-              <div class="notification-icon ${notification.type}">
+              <div class="notification-icon ${t}">
                 <i class="${iconClass}"></i>
               </div>
               <div class="notification-content flex-grow-1">
-                <div class="notification-title">${notification.title}</div>
-                <div class="notification-message">${notification.message}</div>
-                <div class="notification-time">${notification.time_ago}</div>
-                ${notification.sender ? `<small class="text-muted">da ${notification.sender.nome} ${notification.sender.cognome}</small>` : ''}
+                <div class="notification-message">${msg}</div>
+                <div class="notification-time">${formatDate(notification.created_at)}</div>
               </div>
             </div>
           </div>
@@ -1749,9 +1857,11 @@
       }).join('');
     }
     
-    // Ottieni icona per tipo notifica
     function getNotificationIcon(type) {
       const icons = {
+        'post_like': 'fas fa-heart',
+        'post_comment': 'fas fa-comment',
+        'comment_reply': 'fas fa-reply',
         'like': 'fas fa-heart',
         'comment': 'fas fa-comment',
         'course_enrollment': 'fas fa-user-plus',
@@ -1764,23 +1874,15 @@
       return icons[type] || 'fas fa-bell';
     }
     
-    // Segna notifica come letta
     async function markNotificationRead(notificationId) {
       try {
-        const res = await fetch('/api/notifications/mark-read', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notification_ids: [notificationId] })
-        });
+        const res = await fetch(`/api/me/notifications/${notificationId}/read`, { method: 'POST' });
         
         if (res.ok) {
-          // Rimuovi classe unread
           const notificationElement = document.querySelector(`[data-notification-id="${notificationId}"]`);
           if (notificationElement) {
             notificationElement.classList.remove('unread');
           }
-          
-          // Aggiorna badge
           pollNotifications();
         }
       } catch (e) {
@@ -1788,28 +1890,21 @@
       }
     }
     
-    // Segna tutte le notifiche come lette
     async function markAllNotificationsRead() {
       try {
-        const res = await fetch('/api/notifications/mark-read', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}) // Vuoto = tutte
-        });
+        const res = await fetch('/api/me/notifications/read-all', { method: 'POST' });
         
         if (res.ok) {
-          // Rimuovi classe unread da tutte
           document.querySelectorAll('.notification-item.unread').forEach(el => {
             el.classList.remove('unread');
           });
-          
-          // Aggiorna badge
           updateNotificationsBadge(0);
-          showAlert('✅ Tutte le notifiche segnate come lette', 'success');
+          showAlert('Tutte le notifiche segnate come lette', 'success');
+          loadNotifications();
         }
       } catch (e) {
         console.error('Error marking all notifications as read:', e);
-        showAlert('❌ Errore aggiornamento notifiche', 'danger');
+        showAlert('Errore aggiornamento notifiche', 'danger');
       }
     }
     
@@ -1866,14 +1961,14 @@
       if (!currentUser) return;
       
       try {
-        const res = await fetch('/api/notifications/unread-count');
+        const res = await fetch('/api/me/notifications?limit=1');
         const data = await res.json();
         
-        if (res.ok) {
+        if (res.ok && typeof data.unread_count === 'number') {
           updateNotificationsBadge(data.unread_count);
         }
       } catch (e) {
-        // Silenzioso - non mostrare errori di polling
+        // Silenzioso
       }
     }
 
@@ -1887,6 +1982,90 @@
       if(s<86400) return Math.floor(s/3600)+'h'; 
       if(s<604800) return Math.floor(s/86400)+'g'; 
       return date.toLocaleDateString('it-IT'); 
+    }
+
+    const COURSE_IMG_FALLBACK = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400';
+
+    function resolveMediaUrl(u) {
+      if (u == null) return '';
+      const s = String(u).trim();
+      if (!s) return '';
+      if (/^https?:\/\//i.test(s)) return s;
+      if (s.startsWith('//')) return window.location.protocol + s;
+      const path = s.startsWith('/') ? s : '/' + s.replace(/^\/+/, '');
+      return window.location.origin + path;
+    }
+
+    function openCourseShareModalForCurrentCourse() {
+      const id = currentCourse && currentCourse.id;
+      if (!id) return;
+      openCourseShareModalByCourseId(id);
+    }
+
+    function courseShareUrlFromId(courseId) {
+      return `${window.location.origin}/?corso=${courseId}`;
+    }
+
+    function openCourseShareModalByCourseId(courseId) {
+      const inp = document.getElementById('course-share-url-input');
+      if (inp) inp.value = courseShareUrlFromId(courseId);
+      new bootstrap.Modal(document.getElementById('courseShareModal')).show();
+    }
+
+    function copyCourseShareLinkById(courseId) {
+      const url = courseShareUrlFromId(courseId);
+      navigator.clipboard.writeText(url).then(() => {
+        showAlert('Link copiato negli appunti', 'success');
+      }).catch(() => {
+        openCourseShareModalByCourseId(courseId);
+        showAlert('Copia il link dal modal', 'info');
+      });
+    }
+
+    function getCourseIdFromUrl() {
+      const p = new URLSearchParams(window.location.search);
+      let id = p.get('corso') || p.get('course');
+      if (!id && window.location.hash && window.location.hash.indexOf('corso=') >= 0) {
+        const m = window.location.hash.match(/corso=(\d+)/);
+        if (m) id = m[1];
+      }
+      if (!id) return null;
+      const n = parseInt(String(id).trim(), 10);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    }
+
+    function handleCourseShareUrlParam() {
+      const cid = getCourseIdFromUrl();
+      if (!cid) return;
+      if (!currentUser) {
+        sessionStorage.setItem('pendingCourseId', String(cid));
+        showAlert('Accedi per aprire il corso condiviso dal link.', 'info');
+        return;
+      }
+      const path = window.location.pathname || '/';
+      window.history.replaceState({}, '', path);
+      setTimeout(() => viewCourse(cid), 200);
+    }
+
+    function openPendingCourseFromStorage() {
+      const raw = sessionStorage.getItem('pendingCourseId');
+      if (!raw || !currentUser) return;
+      sessionStorage.removeItem('pendingCourseId');
+      const cid = parseInt(raw, 10);
+      if (!Number.isFinite(cid)) return;
+      setTimeout(() => viewCourse(cid), 400);
+    }
+
+    function copyCourseShareUrl() {
+      const inp = document.getElementById('course-share-url-input');
+      if (!inp || !inp.value) return;
+      inp.select();
+      inp.setSelectionRange(0, 99999);
+      navigator.clipboard.writeText(inp.value).then(() => {
+        showAlert('Link copiato negli appunti', 'success');
+      }).catch(() => {
+        showAlert('Copia manualmente il link dal campo', 'info');
+      });
     }
 
     function showAlert(message,type){ 
@@ -2187,16 +2366,23 @@
             currentUser=data.user; 
             showUserSection(); 
             loadPosts();
-            // 🔔 Avvia polling notifiche per utenti loggati
             startNotificationPolling();
+            if (getCourseIdFromUrl()) {
+              handleCourseShareUrlParam();
+            } else {
+              openPendingCourseFromStorage();
+            }
           } else { 
             showGuestSection(); 
+            handleCourseShareUrlParam();
           } 
         } else { 
           showGuestSection(); 
+          handleCourseShareUrlParam();
         } 
       } catch(e){ 
         showGuestSection(); 
+        handleCourseShareUrlParam();
       } 
     }
 
@@ -2220,8 +2406,12 @@
           closeModal('loginModal'); 
           showUserSection(); 
           loadPosts();
-          // 🔔 Avvia polling notifiche
           startNotificationPolling();
+          if (getCourseIdFromUrl()) {
+            handleCourseShareUrlParam();
+          } else {
+            openPendingCourseFromStorage();
+          }
         } else { 
           showAlert(data.error||'Errore durante il login','danger'); 
         } 
@@ -2266,7 +2456,12 @@
           showUserSection(); 
           loadPosts(); 
           loadActiveUsers(); 
-          startNotificationPolling(); 
+          startNotificationPolling();
+          if (getCourseIdFromUrl()) {
+            handleCourseShareUrlParam();
+          } else {
+            openPendingCourseFromStorage();
+          }
         } else { 
           showAlert(data.error||'Errore durante la registrazione','danger'); 
         } 
@@ -2300,6 +2495,8 @@
       document.getElementById('nav-user').style.display='none'; 
       document.getElementById('nav-review').style.display='none'; 
       document.getElementById('nav-notifications').style.display='none';
+      const nw = document.getElementById('nav-workspace');
+      if (nw) nw.style.display='none';
     }
     
     function showUserSection(){ 
@@ -2310,6 +2507,8 @@
       document.getElementById('nav-user').style.display='block'; 
       document.getElementById('nav-review').style.display='block'; 
       document.getElementById('nav-notifications').style.display='block';
+      const nw = document.getElementById('nav-workspace');
+      if (nw) nw.style.display='block';
       
       if(currentUser){ 
         document.getElementById('user-name').textContent=currentUser.nome || currentUser.username; 
@@ -3103,6 +3302,87 @@
     }
 
     // ======== ADMIN COURSES FUNCTIONS ========
+    let editingCourseId = null;
+
+    function setCreateCourseModalMode(isCreate) {
+      const titleEl = document.getElementById('create-course-modal-title');
+      const btn = document.getElementById('create-course-btn');
+      if (titleEl) {
+        titleEl.innerHTML = isCreate
+          ? '<i class="fas fa-plus me-2"></i>Crea Nuovo Corso'
+          : '<i class="fas fa-edit me-2"></i>Modifica corso';
+      }
+      if (btn) {
+        btn.innerHTML = isCreate
+          ? '<i class="fas fa-plus me-1"></i>Crea Corso'
+          : '<i class="fas fa-save me-1"></i>Salva modifiche';
+      }
+    }
+
+    function openCreateCourseModal() {
+      editingCourseId = null;
+      setCreateCourseModalMode(true);
+      const form = document.getElementById('createCourseForm');
+      if (form) {
+        form.reset();
+        form.classList.remove('was-validated');
+      }
+      const descCount = document.getElementById('desc-count');
+      if (descCount) descCount.textContent = '0';
+      const fi = document.getElementById('course-thumbnail-file');
+      if (fi) fi.value = '';
+      const prevWrap = document.getElementById('course-thumbnail-preview-wrap');
+      const prevImg = document.getElementById('course-thumbnail-preview');
+      if (prevWrap) prevWrap.style.display = 'none';
+      if (prevImg) prevImg.removeAttribute('src');
+    }
+
+    async function editCourse(courseId) {
+      if (!currentUser || !currentUser.is_admin) {
+        showAlert('Permesso negato', 'danger');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/courses/${courseId}`, { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) {
+          showAlert(data.error || 'Impossibile caricare il corso', 'danger');
+          return;
+        }
+        const course = data.course;
+        editingCourseId = courseId;
+        setCreateCourseModalMode(false);
+
+        document.getElementById('course-title').value = course.title || '';
+        document.getElementById('course-description').value = course.description || '';
+        document.getElementById('desc-count').textContent = String((course.description || '').length);
+        document.getElementById('course-category').value = course.category || '';
+        document.getElementById('course-type').value = course.course_type || 'CORSI';
+        document.getElementById('course-level').value = course.skill_level || 'Beginner';
+        document.getElementById('course-duration').value = course.duration_hours != null ? course.duration_hours : '';
+        document.getElementById('course-price').value = course.price != null ? course.price : '';
+        document.getElementById('course-private').checked = !!course.is_private;
+
+        const thumb = (course.thumbnail_url || '').trim();
+        document.getElementById('course-thumbnail').value = /^https?:\/\//i.test(thumb) ? thumb : '';
+        const fileInp = document.getElementById('course-thumbnail-file');
+        if (fileInp) fileInp.value = '';
+        const prevWrap = document.getElementById('course-thumbnail-preview-wrap');
+        const prevImg = document.getElementById('course-thumbnail-preview');
+        if (thumb) {
+          prevImg.src = resolveMediaUrl(thumb);
+          prevWrap.style.display = 'block';
+        } else {
+          prevWrap.style.display = 'none';
+          prevImg.removeAttribute('src');
+        }
+
+        new bootstrap.Modal(document.getElementById('createCourseModal')).show();
+      } catch (e) {
+        showAlert('Errore di connessione', 'danger');
+      }
+    }
+
     function showCoursesManager() {
       new bootstrap.Modal(document.getElementById('coursesManagerModal')).show();
       loadCoursesManager();
@@ -3146,15 +3426,16 @@
         <div class="card mb-3" style="background: rgba(45,45,45,.8); border: 1px solid var(--border-color);">
           <div class="row g-0">
             <div class="col-md-3">
-              <img src="${course.thumbnail_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400'}" 
-                   class="img-fluid rounded-start h-100" style="object-fit: cover;" alt="${course.title}">
+              <img src="${resolveMediaUrl(course.thumbnail_url) || COURSE_IMG_FALLBACK}" 
+                   class="img-fluid rounded-start h-100" style="object-fit: cover; min-height:120px;" alt="${course.title}"
+                   onerror="this.onerror=null;this.src='${COURSE_IMG_FALLBACK}'">
             </div>
             <div class="col-md-9">
               <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                   <div>
                     <h6 class="card-title">${course.title}</h6>
-                    <p class="card-text small text-muted">${course.description.substring(0, 150)}...</p>
+                    <p class="card-text small text-muted">${(course.description || '').substring(0, 150)}${(course.description || '').length > 150 ? '...' : ''}</p>
                     <div class="d-flex gap-3 small">
                       <span><i class="fas fa-tag me-1"></i>${course.category}</span>
                       <span><i class="fas fa-layer-group me-1"></i>${course.course_type}</span>
@@ -3167,6 +3448,9 @@
                     <div class="btn-group-vertical btn-group-sm">
                       <button class="btn btn-outline-primary btn-sm" onclick="editCourse(${course.id})" title="Modifica">
                         <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-outline-secondary btn-sm" onclick="copyCourseShareLinkById(${course.id})" title="Copia link condivisibile">
+                        <i class="fas fa-link"></i>
                       </button>
                       <button class="btn btn-outline-danger btn-sm" onclick="deleteCourse(${course.id})" title="Elimina">
                         <i class="fas fa-trash"></i>
@@ -3187,63 +3471,82 @@
 
     async function createCourse() {
       if (!currentUser || !currentUser.is_admin) {
-        showAlert('Solo gli amministratori possono creare corsi', 'danger');
+        showAlert('Solo gli amministratori possono creare o modificare corsi', 'danger');
         return;
       }
 
-      // Valida form
       const form = document.getElementById('createCourseForm');
       if (!form.checkValidity()) {
         form.classList.add('was-validated');
         return;
       }
 
-      const courseData = {
-        title: document.getElementById('course-title').value.trim(),
-        description: document.getElementById('course-description').value.trim(),
-        category: document.getElementById('course-category').value,
-        course_type: document.getElementById('course-type').value,
-        skill_level: document.getElementById('course-level').value,
-        duration_hours: parseInt(document.getElementById('course-duration').value) || 0,
-        thumbnail_url: document.getElementById('course-thumbnail').value.trim(),
-        price: parseFloat(document.getElementById('course-price').value) || 0,
-        is_private: document.getElementById('course-private').checked
-      };
+      const isEdit = editingCourseId != null;
+      const fileInput = document.getElementById('course-thumbnail-file');
+      const thumbFile = fileInput && fileInput.files && fileInput.files[0];
+      const thumbUrlField = document.getElementById('course-thumbnail').value.trim();
+
+      const fd = new FormData();
+      fd.append('title', document.getElementById('course-title').value.trim());
+      fd.append('description', document.getElementById('course-description').value.trim());
+      fd.append('category', document.getElementById('course-category').value);
+      fd.append('course_type', document.getElementById('course-type').value);
+      fd.append('skill_level', document.getElementById('course-level').value);
+      fd.append('duration_hours', String(parseInt(document.getElementById('course-duration').value, 10) || 0));
+      fd.append('price', String(parseFloat(document.getElementById('course-price').value) || 0));
+      fd.append('is_private', document.getElementById('course-private').checked ? 'true' : 'false');
+      if (thumbFile) {
+        fd.append('thumbnail', thumbFile);
+      } else if (thumbUrlField) {
+        fd.append('thumbnail_url', thumbUrlField);
+      }
 
       const btn = document.getElementById('create-course-btn');
       const originalText = btn.innerHTML;
       btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creando...';
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>' + (isEdit ? 'Salvataggio...' : 'Creazione...');
 
       try {
-        const res = await fetch('/api/courses', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(courseData)
-        });
-
+        const url = isEdit ? `/api/courses/${editingCourseId}` : '/api/courses';
+        const method = isEdit ? 'PUT' : 'POST';
+        const res = await fetch(url, { method, body: fd, credentials: 'same-origin' });
         const data = await res.json();
 
         if (res.ok) {
-          showAlert('🎉 Corso creato con successo!', 'success');
-          bootstrap.Modal.getInstance(document.getElementById('createCourseModal')).hide();
+          const createInst = bootstrap.Modal.getInstance(document.getElementById('createCourseModal'));
+          if (createInst) createInst.hide();
           form.reset();
           form.classList.remove('was-validated');
           document.getElementById('desc-count').textContent = '0';
-          
-          // Ricarica manager se aperto
-          const managerModal = bootstrap.Modal.getInstance(document.getElementById('coursesManagerModal'));
-          if (managerModal) {
+          if (fileInput) fileInput.value = '';
+          const prevWrap = document.getElementById('course-thumbnail-preview-wrap');
+          const prevImg = document.getElementById('course-thumbnail-preview');
+          if (prevWrap) prevWrap.style.display = 'none';
+          if (prevImg) prevImg.removeAttribute('src');
+          editingCourseId = null;
+          setCreateCourseModalMode(true);
+
+          if (isEdit) {
+            showAlert('Corso aggiornato con successo!', 'success');
             loadCoursesManager();
+          } else {
+            showAlert('Corso creato con successo!', 'success');
+            const shareUrl = data.share_url || courseShareUrlFromId(data.course && data.course.id);
+            const shareInp = document.getElementById('course-share-url-input');
+            if (shareInp) shareInp.value = shareUrl;
+            new bootstrap.Modal(document.getElementById('courseShareModal')).show();
+            const managerModal = bootstrap.Modal.getInstance(document.getElementById('coursesManagerModal'));
+            if (managerModal) loadCoursesManager();
           }
         } else {
-          showAlert(data.error || 'Errore durante la creazione', 'danger');
+          showAlert(data.error || (isEdit ? 'Errore durante l\'aggiornamento' : 'Errore durante la creazione'), 'danger');
         }
       } catch (e) {
         showAlert('Errore di connessione', 'danger');
       } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
+        if (editingCourseId != null) setCreateCourseModalMode(false);
       }
     }
 
@@ -3265,11 +3568,6 @@
       } catch (e) {
         showAlert('Errore di connessione', 'danger');
       }
-    }
-
-    function editCourse(courseId) {
-      showAlert('Funzione in sviluppo', 'info');
-      // TODO: Implementare modal di modifica corso
     }
 
     async function loadCourseStats() {
@@ -3294,6 +3592,157 @@
       }
     }
 
+    function onWorkspaceBlockTypeChange() {
+      const t = document.getElementById('ws-block-type')?.value || 'note';
+      const urlWrap = document.getElementById('ws-url-wrap');
+      const fileWrap = document.getElementById('ws-file-wrap');
+      const contentWrap = document.getElementById('ws-content-wrap');
+      if (!urlWrap || !fileWrap || !contentWrap) return;
+      const needsUrl = (t === 'link' || t === 'image' || t === 'video' || t === 'file');
+      const needsFile = (t === 'image' || t === 'video' || t === 'file');
+      urlWrap.style.display = needsUrl ? 'block' : 'none';
+      fileWrap.style.display = needsFile ? 'block' : 'none';
+      contentWrap.style.display = (t === 'container' || t === 'link') ? 'none' : 'block';
+    }
+
+    async function loadPersonalWorkspace() {
+      const box = document.getElementById('personal-workspace-list');
+      if (!currentUser) {
+        if (box) box.innerHTML = '<p class="text-muted small mb-0">Accedi per usare il tuo spazio.</p>';
+        return;
+      }
+      if (box) box.innerHTML = '<div class="text-center p-3"><div class="spinner"></div><p class="small text-muted mb-0">Caricamento…</p></div>';
+      try {
+        const res = await fetch('/api/me/personal-workspace');
+        const data = await res.json();
+        if (res.ok) {
+          renderPersonalWorkspaceBlocks(data.blocks || []);
+        } else if (box) {
+          box.innerHTML = `<div class="alert alert-danger small mb-0">${data.error || 'Errore'}</div>`;
+        }
+      } catch (e) {
+        if (box) box.innerHTML = '<div class="alert alert-danger small mb-0">Errore di connessione</div>';
+      }
+    }
+
+    function escapeHtmlWs(s) {
+      if (s == null || s === '') return '';
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function renderPersonalWorkspaceBlocks(blocks) {
+      const box = document.getElementById('personal-workspace-list');
+      if (!box) return;
+      if (!blocks.length) {
+        box.innerHTML = '<p class="text-muted small mb-0">Nessun elemento ancora. Aggiungi note, link o file qui sotto.</p>';
+        return;
+      }
+      box.innerHTML = blocks.map(b => {
+        const u = b.url ? resolveMediaUrl(b.url) : '';
+        let body = '';
+        if (b.block_type === 'note') {
+          body = `<div class="small text-muted mt-1" style="white-space:pre-wrap;">${escapeHtmlWs(b.content)}</div>`;
+        } else if (b.block_type === 'code') {
+          body = `<pre class="small bg-dark text-light p-2 rounded mt-1 mb-0" style="max-height:160px;overflow:auto;">${escapeHtmlWs(b.content)}</pre>`;
+        } else if (b.block_type === 'link' && u) {
+          body = `<a href="${escapeHtmlWs(u)}" target="_blank" rel="noopener" class="small">${escapeHtmlWs(u)}</a>`;
+        } else if (b.block_type === 'image' && u) {
+          body = `<img src="${escapeHtmlWs(u)}" class="img-fluid rounded mt-1" style="max-height:140px;" alt="">`;
+        } else if ((b.block_type === 'file' || b.block_type === 'video') && u) {
+          body = `<a href="${escapeHtmlWs(u)}" target="_blank" rel="noopener" class="small"><i class="fas fa-paperclip me-1"></i>Apri allegato</a>`;
+        } else if (b.block_type === 'container') {
+          body = '<span class="badge bg-secondary small">Sezione</span>';
+        }
+        return `
+          <div class="card glass-card mb-2 border-secondary">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div class="flex-grow-1">
+                  <strong class="small">${escapeHtmlWs(b.title || b.block_type)}</strong>
+                  <span class="badge bg-dark ms-1 small">${escapeHtmlWs(b.block_type)}</span>
+                  ${body}
+                </div>
+                <div class="btn-group btn-group-sm flex-shrink-0">
+                  <button type="button" class="btn btn-outline-secondary" title="Archivia" onclick="archiveWorkspaceBlock(${b.id})"><i class="fas fa-box-archive"></i></button>
+                  <button type="button" class="btn btn-outline-danger" title="Elimina" onclick="deleteWorkspaceBlock(${b.id})"><i class="fas fa-trash"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function archiveWorkspaceBlock(id) {
+      try {
+        const res = await fetch(`/api/me/personal-workspace/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ archived: true })
+        });
+        if (res.ok) {
+          loadPersonalWorkspace();
+        } else {
+          const d = await res.json();
+          showAlert(d.error || 'Errore', 'danger');
+        }
+      } catch (e) {
+        showAlert('Errore di connessione', 'danger');
+      }
+    }
+
+    async function deleteWorkspaceBlock(id) {
+      if (!confirm('Eliminare questo elemento dallo spazio personale?')) return;
+      try {
+        const res = await fetch(`/api/me/personal-workspace/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          loadPersonalWorkspace();
+        } else {
+          const d = await res.json();
+          showAlert(d.error || 'Errore', 'danger');
+        }
+      } catch (e) {
+        showAlert('Errore di connessione', 'danger');
+      }
+    }
+
+    async function submitPersonalWorkspaceBlock(ev) {
+      ev.preventDefault();
+      if (!currentUser) {
+        showAlert('Accedi per salvare nel tuo spazio', 'danger');
+        return;
+      }
+      const type = document.getElementById('ws-block-type')?.value || 'note';
+      const fd = new FormData();
+      fd.append('block_type', type);
+      fd.append('title', (document.getElementById('ws-block-title')?.value || '').trim());
+      fd.append('content', document.getElementById('ws-block-content')?.value || '');
+      fd.append('url', (document.getElementById('ws-block-url')?.value || '').trim());
+      const wf = document.getElementById('ws-block-file');
+      if (wf && wf.files && wf.files[0]) {
+        fd.append('file', wf.files[0]);
+      }
+      const btn = document.getElementById('ws-add-btn');
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/api/me/personal-workspace', { method: 'POST', body: fd, credentials: 'same-origin' });
+        const data = await res.json();
+        if (res.ok) {
+          showAlert('Elemento salvato', 'success');
+          document.getElementById('personal-workspace-add-form')?.reset();
+          onWorkspaceBlockTypeChange();
+          loadPersonalWorkspace();
+        } else {
+          showAlert(data.error || 'Errore salvataggio', 'danger');
+        }
+      } catch (e) {
+        showAlert('Errore di connessione', 'danger');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
     // Event listeners per i form
     document.addEventListener('DOMContentLoaded', function() {
       // Contatore caratteri descrizione corso
@@ -3301,6 +3750,27 @@
       if (courseDesc) {
         courseDesc.addEventListener('input', function() {
           document.getElementById('desc-count').textContent = this.value.length;
+        });
+      }
+      const ctf = document.getElementById('course-thumbnail-file');
+      if (ctf) {
+        ctf.addEventListener('change', function() {
+          const f = this.files && this.files[0];
+          const wrap = document.getElementById('course-thumbnail-preview-wrap');
+          const img = document.getElementById('course-thumbnail-preview');
+          if (!f || !wrap || !img) return;
+          const r = new FileReader();
+          r.onload = () => { img.src = r.result; wrap.style.display = 'block'; };
+          r.readAsDataURL(f);
+        });
+      }
+      onWorkspaceBlockTypeChange();
+
+      const createCourseModalEl = document.getElementById('createCourseModal');
+      if (createCourseModalEl) {
+        createCourseModalEl.addEventListener('hidden.bs.modal', function() {
+          editingCourseId = null;
+          setCreateCourseModalMode(true);
         });
       }
     });
@@ -3355,8 +3825,9 @@
           ${courses.map(course => `
             <div class="col-lg-4 col-md-6 mb-4">
               <div class="course-card">
-                <img src="${course.thumbnail_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400'}" 
-                     alt="${course.title}" class="course-thumbnail">
+                <img src="${resolveMediaUrl(course.thumbnail_url) || COURSE_IMG_FALLBACK}" 
+                     alt="${course.title}" class="course-thumbnail"
+                     onerror="this.onerror=null;this.src='${COURSE_IMG_FALLBACK}'">
                 <div class="course-meta">
                   <div class="course-title">${course.title}</div>
                   <div class="course-description">${course.description.substring(0, 100)}...</div>
@@ -3400,8 +3871,9 @@
           currentCourse = data.course;
           renderCourseView(data.course);
           
-          // Chiudi modal lista e apri modal corso
-          bootstrap.Modal.getInstance(document.getElementById('coursesListModal')).hide();
+          const listEl = document.getElementById('coursesListModal');
+          const listInst = listEl ? bootstrap.Modal.getInstance(listEl) : null;
+          if (listInst) listInst.hide();
           setTimeout(() => {
             new bootstrap.Modal(document.getElementById('courseViewModal')).show();
           }, 300);
@@ -3416,13 +3888,20 @@
     // Renderizza la vista del corso
     function renderCourseView(course) {
       document.getElementById('course-view-title').innerHTML = `<i class="fas fa-book me-2"></i>${course.title}`;
-      document.getElementById('course-view-thumbnail').src = course.thumbnail_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400';
+      const thumbEl = document.getElementById('course-view-thumbnail');
+      thumbEl.onerror = function() { this.onerror = null; this.src = COURSE_IMG_FALLBACK; };
+      thumbEl.src = resolveMediaUrl(course.thumbnail_url) || COURSE_IMG_FALLBACK;
       document.getElementById('course-view-price').textContent = course.price === 0 ? 'Gratuito' : `€${course.price}`;
       document.getElementById('course-view-level').textContent = course.skill_level;
       document.getElementById('course-view-duration').textContent = `${course.duration_hours} ore`;
       document.getElementById('course-view-category').textContent = course.category;
       document.getElementById('course-view-description').textContent = course.description;
       document.getElementById('course-students-count').textContent = `${course.enrolled_count || 0} studenti iscritti`;
+
+      const adminAct = document.getElementById('course-admin-actions');
+      if (adminAct) {
+        adminAct.style.display = (currentUser && currentUser.is_admin) ? 'block' : 'none';
+      }
       
       // Aggiorna pulsante iscrizione
       const enrollBtn = document.getElementById('course-enroll-btn');

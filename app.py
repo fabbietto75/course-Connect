@@ -759,6 +759,14 @@ def _payload():
     return data
 
 
+def _public_site_base():
+    """URL pubblico per link condivisi (corsi). Su proxy/Render usare PUBLIC_SITE_URL."""
+    u = (os.environ.get('PUBLIC_SITE_URL') or '').strip().rstrip('/')
+    if u:
+        return u
+    return request.host_url.rstrip('/')
+
+
 def _allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -1543,9 +1551,12 @@ def create_course():
         db.session.add(course)
         db.session.commit()
         
+        base = _public_site_base()
+        share_url = f'{base}/?corso={course.id}'
         return jsonify({
             'message': 'Corso creato con successo',
-            'course': course.to_dict(user)
+            'course': course.to_dict(user),
+            'share_url': share_url,
         })
     except Exception as e:
         db.session.rollback()
@@ -1604,9 +1615,12 @@ def update_course(course_id):
 
         db.session.commit()
 
+        base = _public_site_base()
+        share_url = f'{base}/?corso={course.id}'
         return jsonify({
             'message': 'Corso aggiornato con successo',
-            'course': course.to_dict(user)
+            'course': course.to_dict(user),
+            'share_url': share_url,
         })
     except Exception as e:
         db.session.rollback()
