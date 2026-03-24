@@ -5,7 +5,7 @@
 
 from flask import Flask, render_template, request, jsonify, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
+from sqlalchemy import text, inspect
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -91,6 +91,12 @@ class User(db.Model):
     taught_courses = db.relationship('Course', backref='instructor', lazy='dynamic')
     enrollments = db.relationship('Enrollment', backref='student', lazy='dynamic', cascade='all, delete-orphan')
     lesson_progress = db.relationship('LessonProgress', backref='user', lazy='dynamic', cascade='all, delete-orphan')
+    notifications = db.relationship(
+        'Notification', foreign_keys='Notification.user_id', backref='recipient', lazy='dynamic', cascade='all, delete-orphan'
+    )
+    personal_workspace_blocks = db.relationship(
+        'PersonalWorkspaceBlock', foreign_keys='PersonalWorkspaceBlock.user_id', backref='owner', lazy='dynamic', cascade='all, delete-orphan'
+    )
 
     def set_password(self, password: str):
         self.password_hash = generate_password_hash(password)
@@ -145,6 +151,9 @@ class Post(db.Model):
     content = db.Column(db.Text, nullable=False)
     image_filename = db.Column(db.String(255))
     video_filename = db.Column(db.String(255))
+    # text | code | media | reel — per UI (snippet codice, reel, ecc.)
+    post_type = db.Column(db.String(20), default='text')
+    code_language = db.Column(db.String(40), default='')  # es. python, javascript
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -167,6 +176,8 @@ class Post(db.Model):
             'content': self.content,
             'image_filename': self.image_filename,
             'video_filename': self.video_filename,
+            'post_type': getattr(self, 'post_type', None) or 'text',
+            'code_language': getattr(self, 'code_language', None) or '',
             'created_at': (self.created_at or datetime.utcnow()).isoformat(),
             'author': self.author.to_dict() if self.author else {},
             'likes_count': self.get_likes_count(),
@@ -183,6 +194,9 @@ class Comment(db.Model):
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+    parent_comment_id = db.Column(db.Integer, db.ForeignKey('comment.id'), nullable=True)
+
+    replies = db.relationship('Comment', backref=db.backref('parent', remote_side=[id]), lazy='dynamic')
 
     def to_dict(self):
         return {
@@ -191,6 +205,7 @@ class Comment(db.Model):
             'created_at': (self.created_at or datetime.utcnow()).isoformat(),
             'author': self.author.to_dict() if self.author else {},
             'post_id': self.post_id,
+            'parent_comment_id': self.parent_comment_id,
             'user_can_delete': True  # Will be updated by frontend logic
         }
 
@@ -425,6 +440,77 @@ class CourseWorkspaceItem(db.Model):
         }
 
 
+class Notification(db.Model):
+    """Notifiche: commenti, like, risposte ai commenti"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    actor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    notification_type = db.Column(db.String(40), nullable=False)  # post_comment, post_like, comment_reply
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=True)
+    comment_id = db.Column(db.Integer, db.ForeignKey('comment.id'), nullable=True)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    actor = db.relationship('User', foreign_keys=[actor_id])
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'notification_type': self.notification_type,
+            'actor': self.actor.to_dict() if self.actor else None,
+            'post_id': self.post_id,
+            'comment_id': self.comment_id,
+            'is_read': self.is_read,
+            'created_at': (self.created_at or datetime.utcnow()).isoformat(),
+        }
+
+
+class PersonalWorkspaceBlock(db.Model):
+    """
+    Workspace personale globale (contenitori + blocchi): note, codice, link, file, media.
+    parent_id NULL = contenitore sezione o blocco radice; altrimenti figlio di un contenitore.
+    """
+    __tablename__ = 'personal_workspace_block'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    parent_id = db.Column(db.Integer, db.ForeignKey('personal_workspace_block.id'), nullable=True)
+    block_type = db.Column(db.String(30), nullable=False)  # container, note, code, link, file, image, video
+    title = db.Column(db.String(200), default='')
+    content = db.Column(db.Text, default='')
+    url = db.Column(db.String(800), default='')
+    sort_order = db.Column(db.Integer, default=0)
+    archived = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    children = db.relationship(
+        'PersonalWorkspaceBlock',
+        backref=db.backref('parent', remote_side=[id]),
+        lazy='select',
+        cascade='all, delete-orphan'
+    )
+
+    def to_dict(self, shallow=True):
+        d = {
+            'id': self.id,
+            'user_id': self.user_id,
+            'parent_id': self.parent_id,
+            'block_type': self.block_type,
+            'title': self.title,
+            'content': self.content,
+            'url': self.url,
+            'sort_order': self.sort_order,
+            'archived': self.archived,
+            'created_at': (self.created_at or datetime.utcnow()).isoformat(),
+            'updated_at': (self.updated_at or datetime.utcnow()).isoformat(),
+        }
+        if not shallow:
+            ch = sorted(self.children, key=lambda x: (x.sort_order, x.id))
+            d['children'] = [c.to_dict(shallow=False) for c in ch]
+        return d
+
+
 class DeletedAccount(db.Model):
     """Modello per tracciare account eliminati e feedback"""
     id = db.Column(db.Integer, primary_key=True)
@@ -582,9 +668,58 @@ Questa è una lezione demo per il corso **{course.title}**.
         print("✅ Lezioni demo create!")
 
 
+ALLOWED_POST_TYPES = frozenset({'text', 'code', 'media', 'reel'})
+
+
+def _quote_table(name: str) -> str:
+    """PostgreSQL riserva alcune parole: serve quoting per tabelle come 'comment'."""
+    if db.engine.dialect.name == 'postgresql':
+        return f'"{name}"'
+    return name
+
+
+def _notify_user(recipient_id, actor_id, notification_type, post_id=None, comment_id=None):
+    """Crea notifica se destinatario diverso dall'attore."""
+    if not recipient_id or not actor_id or recipient_id == actor_id:
+        return
+    db.session.add(Notification(
+        user_id=recipient_id,
+        actor_id=actor_id,
+        notification_type=notification_type,
+        post_id=post_id,
+        comment_id=comment_id,
+    ))
+
+
+def ensure_schema():
+    """Aggiunge colonne mancanti (create_all non modifica tabelle già create)."""
+    try:
+        insp = inspect(db.engine)
+        if insp.has_table('post'):
+            cols = {c['name'] for c in insp.get_columns('post')}
+            if 'post_type' not in cols:
+                db.session.execute(text("ALTER TABLE post ADD COLUMN post_type VARCHAR(30) DEFAULT 'text'"))
+                db.session.commit()
+            cols = {c['name'] for c in insp.get_columns('post')}
+            if 'code_language' not in cols:
+                db.session.execute(text("ALTER TABLE post ADD COLUMN code_language VARCHAR(40) DEFAULT ''"))
+                db.session.commit()
+        cname = Comment.__tablename__
+        if insp.has_table(cname):
+            cols = {c['name'] for c in insp.get_columns(cname)}
+            if 'parent_comment_id' not in cols:
+                q = _quote_table(cname)
+                db.session.execute(text(f'ALTER TABLE {q} ADD COLUMN parent_comment_id INTEGER'))
+                db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"ensure_schema warning: {e}")
+
+
 def create_tables():
     """Crea tabelle database e fa seed minimo (solo admin)."""
     db.create_all()
+    ensure_schema()
     _seed_data()
 
 
@@ -658,7 +793,7 @@ def health_check():
     """Health check per monitoring"""
     try:
         db.session.execute(text('SELECT 1'))
-        return jsonify({
+        payload = {
             'status': 'healthy',
             'database': 'connected',
             'users_count': User.query.count(),
@@ -670,7 +805,12 @@ def health_check():
             'upload_folder': UPLOAD_FOLDER,
             'video_folder': VIDEO_FOLDER,
             'timestamp': datetime.utcnow().isoformat()
-        })
+        }
+        if request.args.get('with_notifications') == '1':
+            u = get_current_user()
+            if u:
+                payload['unread_notifications'] = Notification.query.filter_by(user_id=u.id, is_read=False).count()
+        return jsonify(payload)
     except Exception as e:
         return jsonify({'status': 'error', 'error': str(e), 'timestamp': datetime.utcnow().isoformat()}), 500
 
@@ -817,21 +957,30 @@ def create_post():
             data = request.get_json()
             content = (data.get('content') or '').strip()
             file = None
+            post_type = (data.get('post_type') or 'text').strip().lower()
+            code_language = (data.get('code_language') or '').strip()[:40]
             print("🔍 JSON request detected")
         else:
+            data = request.form.to_dict()
             content = request.form.get('content', '').strip()
             file = request.files.get('file')
+            post_type = (data.get('post_type') or 'text').strip().lower()
+            code_language = (data.get('code_language') or '').strip()[:40]
             print(f"🔍 Form request detected - Content: {len(content)} chars")
             if file:
                 print(f"🔍 File detected: {file.filename}, Size: {len(file.read())} bytes")
                 file.seek(0)  # Reset file pointer dopo la lettura
 
-        if not content:
-            return jsonify({'error': 'Contenuto post richiesto'}), 400
+        if post_type not in ALLOWED_POST_TYPES:
+            post_type = 'text'
+        if not content and not file:
+            return jsonify({'error': 'Inserisci testo oppure carica un file (foto/video/reel)'}), 400
         if len(content) > 4000:
             return jsonify({'error': 'Post troppo lungo (max 4000 caratteri)'}), 400
+        if file and get_file_type(file.filename) == 'video' and post_type == 'text':
+            post_type = 'reel'
 
-        post = Post(content=content, user_id=user.id)
+        post = Post(content=content or '', user_id=user.id, post_type=post_type, code_language=code_language)
         
         # Handle file upload con LOG COMPLETO
         if file and file.filename:
@@ -914,6 +1063,7 @@ def toggle_like(post_id):
         else:
             db.session.add(Like(user_id=user.id, post_id=post_id))
             action = 'added'
+            _notify_user(post.user_id, user.id, 'post_like', post_id=post_id)
 
         db.session.commit()
         return jsonify({
@@ -988,7 +1138,10 @@ def get_comments(post_id):
         per_page = request.args.get('per_page', 50, type=int)  # Molti commenti per pagina
         
         # Ordina commenti dal più vecchio al più nuovo (conversazione cronologica)
-        comments_query = Comment.query.filter_by(post_id=post_id).order_by(Comment.created_at.asc())
+        comments_query = Comment.query.filter_by(post_id=post_id)
+        if request.args.get('roots_only', '').lower() in {'1', 'true', 'yes'}:
+            comments_query = comments_query.filter(Comment.parent_comment_id.is_(None))
+        comments_query = comments_query.order_by(Comment.created_at.asc())
         
         # Paginazione per post con molti commenti
         comments = comments_query.paginate(page=page, per_page=per_page, error_out=False)
@@ -1019,18 +1172,40 @@ def create_comment(post_id):
 
         data = _payload()
         content = (data.get('content') or '').strip()
+        parent_comment_id = data.get('parent_comment_id')
+        if parent_comment_id is not None and str(parent_comment_id).strip() != '':
+            try:
+                parent_comment_id = int(parent_comment_id)
+            except (TypeError, ValueError):
+                return jsonify({'error': 'parent_comment_id non valido'}), 400
+        else:
+            parent_comment_id = None
         
         if not content:
             return jsonify({'error': 'Contenuto del commento richiesto'}), 400
         if len(content) > 1000:
             return jsonify({'error': 'Commento troppo lungo (max 1000 caratteri)'}), 400
 
+        parent = None
+        if parent_comment_id is not None:
+            parent = db.session.get(Comment, parent_comment_id)
+            if not parent or parent.post_id != post_id:
+                return jsonify({'error': 'Commento padre non valido per questo post'}), 400
+
         comment = Comment(
             content=content,
             user_id=user.id,
-            post_id=post_id
+            post_id=post_id,
+            parent_comment_id=parent_comment_id
         )
         db.session.add(comment)
+        db.session.flush()
+
+        if parent:
+            _notify_user(parent.user_id, user.id, 'comment_reply', post_id=post_id, comment_id=comment.id)
+        else:
+            _notify_user(post.user_id, user.id, 'post_comment', post_id=post_id, comment_id=comment.id)
+
         db.session.commit()
 
         return jsonify({
@@ -1380,18 +1555,17 @@ def create_course():
 
 @app.route('/api/courses/<int:course_id>', methods=['PUT'])
 def update_course(course_id):
-    """Aggiorna corso esistente (solo admin/instructor)"""
+    """Aggiorna corso esistente (solo amministratore sito)"""
     try:
         user = get_current_user()
         if not user:
             return jsonify({'error': 'Login richiesto'}), 401
+        if not user.is_admin:
+            return jsonify({'error': 'Solo l\'amministratore può modificare i corsi'}), 403
 
         course = db.session.get(Course, course_id)
         if not course:
             return jsonify({'error': 'Corso non trovato'}), 404
-
-        if not user.is_admin and course.instructor_id != user.id:
-            return jsonify({'error': 'Non hai i permessi per modificare questo corso'}), 403
 
         if request.is_json:
             data = request.get_json() or {}
@@ -1871,19 +2045,17 @@ def complete_lesson(lesson_id):
 
 @app.route('/api/courses/<int:course_id>', methods=['DELETE'])
 def delete_course(course_id):
-    """Elimina corso (solo admin/instructor)"""
+    """Elimina corso (solo amministratore sito)"""
     try:
         user = get_current_user()
         if not user:
             return jsonify({'error': 'Login richiesto'}), 401
+        if not user.is_admin:
+            return jsonify({'error': 'Solo l\'amministratore può eliminare i corsi'}), 403
         
         course = db.session.get(Course, course_id)
         if not course:
             return jsonify({'error': 'Corso non trovato'}), 404
-        
-        # Solo admin o instructore del corso possono eliminare
-        if not user.is_admin and course.instructor_id != user.id:
-            return jsonify({'error': 'Non hai i permessi per eliminare questo corso'}), 403
         
         # Elimina il corso (cascade eliminerà lezioni, iscrizioni, progressi)
         db.session.delete(course)
@@ -2095,6 +2267,232 @@ def get_my_enrollments():
     except Exception as e:
         print(f"Errore get_my_enrollments: {e}")
         return jsonify({'error': f'Errore caricamento iscrizioni: {str(e)}'}), 500
+
+
+# ========================================
+# NOTIFICHE + WORKSPACE PERSONALE (BLOCCHI)
+# ========================================
+
+ALLOWED_PERSONAL_BLOCK_TYPES = frozenset({'container', 'note', 'code', 'link', 'file', 'image', 'video'})
+
+
+@app.route('/api/me/notifications', methods=['GET'])
+def list_my_notifications():
+    """Elenco notifiche (commenti, like, risposte)."""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+        unread_only = request.args.get('unread_only', '').lower() in {'1', 'true', 'yes'}
+        limit = min(max(request.args.get('limit', 50, type=int), 1), 200)
+        q = Notification.query.filter_by(user_id=user.id)
+        if unread_only:
+            q = q.filter_by(is_read=False)
+        items = q.order_by(Notification.created_at.desc()).limit(limit).all()
+        unread = Notification.query.filter_by(user_id=user.id, is_read=False).count()
+        return jsonify({
+            'notifications': [n.to_dict() for n in items],
+            'unread_count': unread,
+            'total_returned': len(items),
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/me/notifications/<int:nid>/read', methods=['POST'])
+def mark_notification_read(nid):
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+        n = Notification.query.filter_by(id=nid, user_id=user.id).first()
+        if not n:
+            return jsonify({'error': 'Notifica non trovata'}), 404
+        n.is_read = True
+        db.session.commit()
+        return jsonify({'message': 'Segnata come letta', 'id': nid})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/me/notifications/read-all', methods=['POST'])
+def mark_all_notifications_read():
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+        Notification.query.filter_by(user_id=user.id, is_read=False).update({'is_read': True})
+        db.session.commit()
+        return jsonify({'message': 'Tutte le notifiche segnate come lette'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+def _personal_workspace_tree(blocks):
+    by_parent = {}
+    for b in blocks:
+        key = b.parent_id if b.parent_id is not None else 0
+        by_parent.setdefault(key, []).append(b)
+    for k in by_parent:
+        by_parent[k].sort(key=lambda x: (x.sort_order, x.id))
+
+    def build(parent_id):
+        out = []
+        for b in by_parent.get(parent_id, []):
+            d = b.to_dict(shallow=True)
+            d['children'] = build(b.id)
+            out.append(d)
+        return out
+
+    return build(0)
+
+
+@app.route('/api/me/personal-workspace', methods=['GET'])
+def get_personal_workspace():
+    """Workspace personale: contenitori e blocchi (note, codice, link, file…)."""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+        include_archived = request.args.get('include_archived', '').lower() in {'1', 'true', 'yes'}
+        as_tree = request.args.get('tree', '').lower() in {'1', 'true', 'yes'}
+        q = PersonalWorkspaceBlock.query.filter_by(user_id=user.id)
+        if not include_archived:
+            q = q.filter_by(archived=False)
+        blocks = q.order_by(PersonalWorkspaceBlock.sort_order, PersonalWorkspaceBlock.id).all()
+        if as_tree:
+            return jsonify({'blocks': _personal_workspace_tree(blocks)})
+        return jsonify({'blocks': [b.to_dict(shallow=True) for b in blocks], 'total': len(blocks)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/me/personal-workspace', methods=['POST'])
+def create_personal_workspace_block():
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+        data = _payload()
+        block_type = (data.get('block_type') or data.get('type') or '').strip().lower()
+        title = (data.get('title') or '').strip()
+        content = (data.get('content') or '').strip()
+        url = (data.get('url') or '').strip()
+        parent_id = data.get('parent_id')
+        if parent_id is not None and str(parent_id).strip() != '':
+            try:
+                parent_id = int(parent_id)
+            except (TypeError, ValueError):
+                return jsonify({'error': 'parent_id non valido'}), 400
+        else:
+            parent_id = None
+        sort_order = int(data.get('sort_order', 0))
+
+        if block_type not in ALLOWED_PERSONAL_BLOCK_TYPES:
+            return jsonify({'error': 'block_type non valido', 'allowed': sorted(ALLOWED_PERSONAL_BLOCK_TYPES)}), 400
+        if parent_id is not None:
+            parent = db.session.get(PersonalWorkspaceBlock, parent_id)
+            if not parent or parent.user_id != user.id:
+                return jsonify({'error': 'Contenitore padre non trovato'}), 404
+
+        if block_type == 'container' and not title:
+            return jsonify({'error': 'Titolo obbligatorio per un contenitore'}), 400
+        uf = request.files.get('file')
+        if block_type in {'link', 'file', 'image', 'video'} and not url and not (uf and uf.filename):
+            return jsonify({'error': 'Serve url o upload file per questo tipo di blocco'}), 400
+        if block_type in {'note', 'code'} and not content and not (uf and uf.filename):
+            return jsonify({'error': 'Contenuto obbligatorio per note/codice'}), 400
+
+        if uf and uf.filename:
+            if not _allowed_file(uf.filename):
+                return jsonify({'error': 'Formato file non supportato'}), 400
+            import uuid
+            filename = str(uuid.uuid4()) + '.' + uf.filename.rsplit('.', 1)[1].lower()
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            uf.save(filepath)
+            if os.path.exists(filepath):
+                url = f"/uploads/{filename}"
+            else:
+                return jsonify({'error': 'Errore salvataggio file'}), 500
+
+        b = PersonalWorkspaceBlock(
+            user_id=user.id,
+            parent_id=parent_id,
+            block_type=block_type,
+            title=title or (block_type.capitalize() if block_type != 'container' else 'Blocco'),
+            content=content,
+            url=url,
+            sort_order=sort_order,
+        )
+        db.session.add(b)
+        db.session.commit()
+        return jsonify({'message': 'Blocco creato', 'block': b.to_dict(shallow=True)})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/me/personal-workspace/<int:block_id>', methods=['PUT'])
+def update_personal_workspace_block(block_id):
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+        b = db.session.get(PersonalWorkspaceBlock, block_id)
+        if not b or b.user_id != user.id:
+            return jsonify({'error': 'Blocco non trovato'}), 404
+        data = _payload()
+        if 'title' in data:
+            b.title = (data.get('title') or '').strip()
+        if 'content' in data:
+            b.content = (data.get('content') or '').strip()
+        if 'url' in data:
+            b.url = (data.get('url') or '').strip()
+        if 'sort_order' in data and str(data.get('sort_order', '')).strip() != '':
+            b.sort_order = int(data.get('sort_order'))
+        if 'archived' in data:
+            b.archived = _to_bool(data.get('archived'))
+        if 'block_type' in data or 'type' in data:
+            nt = (data.get('block_type') or data.get('type') or '').strip().lower()
+            if nt in ALLOWED_PERSONAL_BLOCK_TYPES:
+                b.block_type = nt
+        db.session.commit()
+        return jsonify({'message': 'Blocco aggiornato', 'block': b.to_dict(shallow=True)})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/me/personal-workspace/<int:block_id>', methods=['DELETE'])
+def delete_personal_workspace_block(block_id):
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+        b = db.session.get(PersonalWorkspaceBlock, block_id)
+        if not b or b.user_id != user.id:
+            return jsonify({'error': 'Blocco non trovato'}), 404
+
+        def delete_file_if_url(u):
+            if u and u.startswith('/uploads/'):
+                fp = os.path.join(app.config['UPLOAD_FOLDER'], u.replace('/uploads/', '', 1))
+                if os.path.exists(fp):
+                    os.remove(fp)
+
+        def recurse_delete(bl):
+            for ch in list(bl.children):
+                recurse_delete(ch)
+            delete_file_if_url(bl.url)
+            db.session.delete(bl)
+
+        recurse_delete(b)
+        db.session.commit()
+        return jsonify({'message': 'Blocco eliminato', 'deleted_id': block_id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 
 # ========================================
