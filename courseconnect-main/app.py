@@ -252,6 +252,7 @@ class Course(db.Model):
     # Relationships
     lessons = db.relationship('Lesson', backref='course', lazy='dynamic', cascade='all, delete-orphan')
     enrollments = db.relationship('Enrollment', backref='course', lazy='dynamic', cascade='all, delete-orphan')
+    resources = db.relationship('CourseResource', backref='course', lazy='dynamic', cascade='all, delete-orphan')
     
     def get_total_lessons(self):
         return self.lessons.count()
@@ -371,6 +372,58 @@ class LessonProgress(db.Model):
     
     __table_args__ = (db.UniqueConstraint('user_id', 'lesson_id', name='unique_user_lesson_progress'),)
     
+
+class CourseResource(db.Model):
+    """Risorse condivise del corso (admin/instructor): video, link, file"""
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    resource_type = db.Column(db.String(20), nullable=False)  # video, link, file, image
+    url = db.Column(db.String(800), nullable=False)
+    description = db.Column(db.Text, default='')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'resource_type': self.resource_type,
+            'url': self.url,
+            'description': self.description,
+            'course_id': self.course_id,
+            'created_by': self.created_by,
+            'created_at': (self.created_at or datetime.utcnow()).isoformat()
+        }
+
+
+class CourseWorkspaceItem(db.Model):
+    """Spazio personale del corsista per corso (note/link/file/video)"""
+    id = db.Column(db.Integer, primary_key=True)
+    item_type = db.Column(db.String(20), nullable=False)  # note, link, file, video, image
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, default='')  # testo nota o descrizione
+    url = db.Column(db.String(800), default='')  # opzionale per link/file/video/image
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'item_type': self.item_type,
+            'title': self.title,
+            'content': self.content,
+            'url': self.url,
+            'user_id': self.user_id,
+            'course_id': self.course_id,
+            'created_at': (self.created_at or datetime.utcnow()).isoformat(),
+            'updated_at': (self.updated_at or datetime.utcnow()).isoformat()
+        }
+
 
 class DeletedAccount(db.Model):
     """Modello per tracciare account eliminati e feedback"""
@@ -584,6 +637,17 @@ def get_file_type(filename):
     elif ext in {'mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'}:
         return 'video'
     return None
+
+
+def _to_bool(value, default=False):
+    """Converte stringhe/bool/int in boolean in modo robusto."""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return str(value).strip().lower() in {'1', 'true', 'yes', 'on'}
 
 # ========================================
 # API ROUTES
@@ -1259,7 +1323,7 @@ def create_course():
             print("🔍 JSON request for course creation")
         else:
             data = request.form.to_dict()
-            file = request.files.get('thumbnail')  # Campo per l'immagine del corso
+            file = request.files.get('thumbnail') or request.files.get('file')  # Compatibilità frontend
             print("🔍 Form request for course creation")
         
         required = ['title', 'category', 'description']
@@ -1294,7 +1358,7 @@ def create_course():
             category=data['category'],
             course_type=data.get('course_type', 'CORSI'),
             thumbnail_url=thumbnail_url,
-            is_private=bool(data.get('is_private', False)),  # ← FIX: gestisce sia boolean che string
+            is_private=_to_bool(data.get('is_private', False)),
             price=float(data.get('price', 0)),
             duration_hours=int(data.get('duration_hours', 0)),
             skill_level=data.get('skill_level', 'Beginner'),
@@ -1312,6 +1376,340 @@ def create_course():
         db.session.rollback()
         print(f"Errore create_course: {e}")
         return jsonify({'error': f'Errore creazione corso: {str(e)}'}), 500
+
+
+@app.route('/api/courses/<int:course_id>', methods=['PUT'])
+def update_course(course_id):
+    """Aggiorna corso esistente (solo admin/instructor)"""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+
+        course = db.session.get(Course, course_id)
+        if not course:
+            return jsonify({'error': 'Corso non trovato'}), 404
+
+        if not user.is_admin and course.instructor_id != user.id:
+            return jsonify({'error': 'Non hai i permessi per modificare questo corso'}), 403
+
+        if request.is_json:
+            data = request.get_json() or {}
+            file = None
+        else:
+            data = request.form.to_dict()
+            file = request.files.get('thumbnail') or request.files.get('file')
+
+        course.title = data.get('title', course.title)
+        course.description = data.get('description', course.description)
+        course.category = data.get('category', course.category)
+        course.course_type = data.get('course_type', course.course_type)
+        course.skill_level = data.get('skill_level', course.skill_level)
+
+        if 'price' in data and str(data.get('price', '')).strip() != '':
+            course.price = float(data.get('price'))
+        if 'duration_hours' in data and str(data.get('duration_hours', '')).strip() != '':
+            course.duration_hours = int(data.get('duration_hours'))
+        if 'is_private' in data:
+            course.is_private = _to_bool(data.get('is_private'))
+
+        if file and file.filename:
+            if _allowed_file(file.filename) and get_file_type(file.filename) == 'image':
+                import uuid
+                filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                if os.path.exists(filepath):
+                    course.thumbnail_url = f"/uploads/{filename}"
+                else:
+                    return jsonify({'error': 'Errore salvataggio immagine'}), 500
+            else:
+                return jsonify({'error': 'Formato immagine non supportato per il corso'}), 400
+        elif data.get('thumbnail_url'):
+            course.thumbnail_url = data.get('thumbnail_url')
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Corso aggiornato con successo',
+            'course': course.to_dict(user)
+        })
+    except Exception as e:
+        db.session.rollback()
+        print(f"Errore update_course: {e}")
+        return jsonify({'error': f'Errore aggiornamento corso: {str(e)}'}), 500
+
+
+@app.route('/api/courses/<int:course_id>/resources', methods=['POST'])
+def add_course_resource(course_id):
+    """Aggiunge materiale condiviso al corso (admin/instructor)"""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+
+        course = db.session.get(Course, course_id)
+        if not course or not course.is_active:
+            return jsonify({'error': 'Corso non trovato'}), 404
+
+        if not user.is_admin and course.instructor_id != user.id:
+            return jsonify({'error': 'Non hai i permessi per aggiungere risorse a questo corso'}), 403
+
+        resource_file = None
+        if request.is_json:
+            data = request.get_json() or {}
+        else:
+            data = request.form.to_dict()
+            resource_file = request.files.get('file') or request.files.get('resource')
+
+        title = (data.get('title') or '').strip()
+        resource_type = (data.get('resource_type') or data.get('type') or '').strip().lower()
+        description = (data.get('description') or '').strip()
+        url = (data.get('url') or '').strip()
+
+        if resource_file and resource_file.filename:
+            if not _allowed_file(resource_file.filename):
+                return jsonify({'error': 'Formato file risorsa non supportato'}), 400
+            import uuid
+            filename = str(uuid.uuid4()) + '.' + resource_file.filename.rsplit('.', 1)[1].lower()
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            resource_file.save(filepath)
+            if not os.path.exists(filepath):
+                return jsonify({'error': 'Errore salvataggio file risorsa'}), 500
+            url = f"/uploads/{filename}"
+            detected_type = get_file_type(filename)
+            resource_type = resource_type or (detected_type if detected_type else 'file')
+
+        allowed_types = {'video', 'link', 'file', 'image'}
+        if not title:
+            return jsonify({'error': 'Titolo risorsa obbligatorio'}), 400
+        if not resource_type or resource_type not in allowed_types:
+            return jsonify({'error': 'Tipo risorsa non valido', 'allowed_types': sorted(list(allowed_types))}), 400
+        if not url:
+            return jsonify({'error': 'URL o file risorsa obbligatorio'}), 400
+
+        resource = CourseResource(
+            title=title,
+            resource_type=resource_type,
+            url=url,
+            description=description,
+            course_id=course_id,
+            created_by=user.id
+        )
+
+        db.session.add(resource)
+        db.session.commit()
+
+        return jsonify({'message': 'Risorsa aggiunta con successo', 'resource': resource.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Errore add_course_resource: {e}")
+        return jsonify({'error': f'Errore aggiunta risorsa: {str(e)}'}), 500
+
+
+@app.route('/api/courses/<int:course_id>/resources', methods=['GET'])
+def get_course_resources(course_id):
+    """Elenca risorse condivise del corso"""
+    try:
+        user = get_current_user()
+        course = db.session.get(Course, course_id)
+        if not course or not course.is_active:
+            return jsonify({'error': 'Corso non trovato'}), 404
+
+        if course.is_private and not user:
+            return jsonify({'error': 'Corso privato - login richiesto'}), 401
+
+        resources = CourseResource.query.filter_by(course_id=course_id).order_by(CourseResource.created_at.desc()).all()
+        return jsonify({'resources': [r.to_dict() for r in resources], 'course_id': course_id, 'total': len(resources)})
+    except Exception as e:
+        print(f"Errore get_course_resources: {e}")
+        return jsonify({'error': f'Errore caricamento risorse: {str(e)}'}), 500
+
+
+@app.route('/api/resources/<int:resource_id>', methods=['DELETE'])
+def delete_course_resource(resource_id):
+    """Elimina risorsa condivisa (admin/instructor proprietario corso)"""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+
+        resource = db.session.get(CourseResource, resource_id)
+        if not resource:
+            return jsonify({'error': 'Risorsa non trovata'}), 404
+
+        course = db.session.get(Course, resource.course_id)
+        if not course:
+            return jsonify({'error': 'Corso non trovato'}), 404
+
+        if not user.is_admin and course.instructor_id != user.id:
+            return jsonify({'error': 'Non hai i permessi per eliminare questa risorsa'}), 403
+
+        if resource.url and resource.url.startswith('/uploads/'):
+            filename = resource.url.replace('/uploads/', '', 1)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+        db.session.delete(resource)
+        db.session.commit()
+        return jsonify({'message': 'Risorsa eliminata con successo', 'deleted_resource_id': resource_id})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Errore delete_course_resource: {e}")
+        return jsonify({'error': f'Errore eliminazione risorsa: {str(e)}'}), 500
+
+
+@app.route('/api/courses/<int:course_id>/workspace', methods=['GET'])
+def get_course_workspace(course_id):
+    """Spazio personale corsista (lista elementi)"""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+
+        course = db.session.get(Course, course_id)
+        if not course or not course.is_active:
+            return jsonify({'error': 'Corso non trovato'}), 404
+
+        items = CourseWorkspaceItem.query.filter_by(
+            user_id=user.id,
+            course_id=course_id
+        ).order_by(CourseWorkspaceItem.updated_at.desc()).all()
+
+        return jsonify({'items': [item.to_dict() for item in items], 'course_id': course_id, 'total': len(items)})
+    except Exception as e:
+        print(f"Errore get_course_workspace: {e}")
+        return jsonify({'error': f'Errore caricamento workspace: {str(e)}'}), 500
+
+
+@app.route('/api/courses/<int:course_id>/workspace', methods=['POST'])
+def add_course_workspace_item(course_id):
+    """Aggiunge elemento nello spazio personale corsista"""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+
+        course = db.session.get(Course, course_id)
+        if not course or not course.is_active:
+            return jsonify({'error': 'Corso non trovato'}), 404
+
+        item_file = None
+        if request.is_json:
+            data = request.get_json() or {}
+        else:
+            data = request.form.to_dict()
+            item_file = request.files.get('file')
+
+        item_type = (data.get('item_type') or data.get('type') or 'note').strip().lower()
+        title = (data.get('title') or '').strip()
+        content = (data.get('content') or '').strip()
+        url = (data.get('url') or '').strip()
+
+        if item_file and item_file.filename:
+            if not _allowed_file(item_file.filename):
+                return jsonify({'error': 'Formato file workspace non supportato'}), 400
+            import uuid
+            filename = str(uuid.uuid4()) + '.' + item_file.filename.rsplit('.', 1)[1].lower()
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            item_file.save(filepath)
+            if not os.path.exists(filepath):
+                return jsonify({'error': 'Errore salvataggio file workspace'}), 500
+            url = f"/uploads/{filename}"
+            detected_type = get_file_type(filename)
+            item_type = item_type if item_type != 'note' else (detected_type if detected_type else 'file')
+
+        allowed_types = {'note', 'link', 'file', 'video', 'image'}
+        if item_type not in allowed_types:
+            return jsonify({'error': 'Tipo elemento non valido', 'allowed_types': sorted(list(allowed_types))}), 400
+        if not title:
+            return jsonify({'error': 'Titolo elemento obbligatorio'}), 400
+        if item_type in {'link', 'file', 'video', 'image'} and not url:
+            return jsonify({'error': 'URL o file obbligatorio per questo tipo'}), 400
+        if item_type == 'note' and not content:
+            return jsonify({'error': 'Contenuto nota obbligatorio'}), 400
+
+        item = CourseWorkspaceItem(
+            item_type=item_type,
+            title=title,
+            content=content,
+            url=url,
+            user_id=user.id,
+            course_id=course_id
+        )
+        db.session.add(item)
+        db.session.commit()
+
+        return jsonify({'message': 'Elemento workspace aggiunto con successo', 'item': item.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Errore add_course_workspace_item: {e}")
+        return jsonify({'error': f'Errore salvataggio workspace: {str(e)}'}), 500
+
+
+@app.route('/api/workspace-items/<int:item_id>', methods=['PUT'])
+def update_course_workspace_item(item_id):
+    """Aggiorna elemento spazio personale"""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+
+        item = db.session.get(CourseWorkspaceItem, item_id)
+        if not item:
+            return jsonify({'error': 'Elemento non trovato'}), 404
+        if item.user_id != user.id:
+            return jsonify({'error': 'Non hai i permessi per modificare questo elemento'}), 403
+
+        data = _payload()
+        if 'title' in data:
+            item.title = (data.get('title') or '').strip() or item.title
+        if 'content' in data:
+            item.content = (data.get('content') or '').strip()
+        if 'url' in data:
+            item.url = (data.get('url') or '').strip()
+        if 'item_type' in data or 'type' in data:
+            new_type = (data.get('item_type') or data.get('type') or item.item_type).strip().lower()
+            if new_type not in {'note', 'link', 'file', 'video', 'image'}:
+                return jsonify({'error': 'Tipo elemento non valido'}), 400
+            item.item_type = new_type
+
+        db.session.commit()
+        return jsonify({'message': 'Elemento workspace aggiornato', 'item': item.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Errore update_course_workspace_item: {e}")
+        return jsonify({'error': f'Errore aggiornamento workspace: {str(e)}'}), 500
+
+
+@app.route('/api/workspace-items/<int:item_id>', methods=['DELETE'])
+def delete_course_workspace_item(item_id):
+    """Elimina elemento spazio personale"""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+
+        item = db.session.get(CourseWorkspaceItem, item_id)
+        if not item:
+            return jsonify({'error': 'Elemento non trovato'}), 404
+        if item.user_id != user.id:
+            return jsonify({'error': 'Non hai i permessi per eliminare questo elemento'}), 403
+
+        if item.url and item.url.startswith('/uploads/'):
+            filename = item.url.replace('/uploads/', '', 1)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+        db.session.delete(item)
+        db.session.commit()
+        return jsonify({'message': 'Elemento workspace eliminato', 'deleted_item_id': item_id})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Errore delete_course_workspace_item: {e}")
+        return jsonify({'error': f'Errore eliminazione workspace: {str(e)}'}), 500
 
 
 @app.route('/api/courses/<int:course_id>/enroll', methods=['POST'])
