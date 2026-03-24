@@ -1,0 +1,3687 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CourseConnect - Social Network per Corsisti</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- highlight.js theme -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" />
+
+  <style>
+    :root{ --primary-color:#667eea; --secondary-color:#764ba2; --accent-color:#f093fb; --success-color:#4facfe; --warning-color:#f6d365; --danger-color:#ff6b6b; --dark-bg:#1a1a1a; --card-bg:#2d2d2d; --text-light:#e0e0e0; --text-muted:#9ca3af; --border-color:#374151; }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,var(--dark-bg) 0%,#2d1b69 100%);color:var(--text-light);min-height:100vh;overflow-x:hidden}
+    .bg-animation{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;opacity:.1}
+    .floating-shapes{position:absolute;width:100%;height:100%;overflow:hidden}
+    .shape{position:absolute;background:linear-gradient(45deg,var(--primary-color),var(--secondary-color));border-radius:50%;animation:float 8s ease-in-out infinite}
+    .shape:nth-child(1){width:80px;height:80px;left:10%;animation-delay:0s}
+    .shape:nth-child(2){width:120px;height:120px;left:70%;animation-delay:2s}
+    .shape:nth-child(3){width:60px;height:60px;left:85%;animation-delay:4s}
+    @keyframes float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-20px) rotate(180deg)}}
+    .glass-card{background:rgba(45,45,45,.7);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.3);transition:all .3s ease}
+    .glass-card:hover{transform:translateY(-5px);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+    .navbar{background:rgba(26,26,26,.9)!important;backdrop-filter:blur(10px);border-bottom:1px solid var(--border-color);padding:1rem 0}
+    .navbar-brand{font-weight:700;background:linear-gradient(45deg,var(--primary-color),var(--accent-color));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:1.5rem}
+    .nav-link{color:var(--text-light)!important;font-weight:500;transition:color .3s ease}
+    .nav-link:hover{color:var(--primary-color)!important}
+    .navbar .navbar-toggler{border-color:rgba(255,255,255,.25)}
+    .navbar .navbar-toggler:focus{box-shadow:0 0 0 .15rem rgba(102,126,234,.35)}
+    .btn-primary{background:linear-gradient(45deg,var(--primary-color),var(--secondary-color));border:none;padding:.75rem 2rem;border-radius:10px;font-weight:600;transition:all .3s ease}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(102,126,234,.3)}
+    .btn-outline-primary{color:var(--primary-color);border-color:var(--primary-color);background:transparent}
+    .btn-outline-primary:hover{background:var(--primary-color);border-color:var(--primary-color);color:#fff}
+    .btn-danger{background:linear-gradient(45deg,var(--danger-color),#dc2626);border:none;border-radius:10px}
+    .btn-danger:hover{background:linear-gradient(45deg,#dc2626,#b91c1c);transform:translateY(-2px)}
+    .hero-section{padding:4rem 0;text-align:center}
+    .hero-title{font-size:3.5rem;font-weight:700;margin-bottom:1.5rem;background:linear-gradient(45deg,var(--primary-color),var(--accent-color));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .hero-subtitle{font-size:1.25rem;color:var(--text-muted);margin-bottom:2rem;max-width:600px;margin-left:auto;margin-right:auto}
+    .form-control,.form-select{background:rgba(45,45,45,.7);border:1px solid var(--border-color);color:var(--text-light);border-radius:10px;padding:.75rem 1rem}
+    .form-control:focus,.form-select:focus{background:rgba(45,45,45,.9);border-color:var(--primary-color);color:var(--text-light);box-shadow:0 0 0 .2rem rgba(102,126,234,.25)}
+    .form-control::placeholder{color:var(--text-muted)}
+    .form-select option{background:var(--card-bg);color:var(--text-light)}
+    .is-invalid{border-color:var(--danger-color)!important;box-shadow:0 0 0 .2rem rgba(255,107,107,.25)!important}
+    .is-valid{border-color:var(--success-color)!important;box-shadow:0 0 0 .2rem rgba(79,172,254,.25)!important}
+    .invalid-feedback{color:var(--danger-color);font-size:.875rem;margin-top:.25rem}
+    .valid-feedback{color:var(--success-color);font-size:.875rem;margin-top:.25rem}
+    .modal-content{background:var(--card-bg);border:1px solid var(--border-color);border-radius:16px}
+    .modal-header{border-bottom:1px solid var(--border-color)}
+    .modal-footer{border-top:1px solid var(--border-color)}
+    .alert{border-radius:10px;border:none;position:fixed;top:20px;right:20px;z-index:9999;min-width:300px;max-width:400px}
+    .alert-success{background:linear-gradient(45deg,rgba(79,172,254,.9),rgba(79,172,254,.9));color:#fff;border:1px solid rgba(79,172,254,.3)}
+    .alert-danger{background:linear-gradient(45deg,rgba(255,107,107,.9),rgba(255,107,107,.9));color:#fff;border:1px solid rgba(255,107,107,.3)}
+    .alert-info{background:linear-gradient(45deg,rgba(102,126,234,.9),rgba(102,126,234,.9));color:#fff;border:1px solid rgba(102,126,234,.3)}
+    .post-card{margin-bottom:1.5rem;padding:1.5rem}
+    .user-avatar{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;color:#fff;margin-right:1rem}
+    .post-content{font-size:1rem;line-height:1.6;margin:1rem 0}
+    .post-actions{
+      display:flex;
+      gap:1rem;
+      margin-top:1rem;
+      padding-top:1rem;
+      border-top:1px solid var(--border-color);
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .action-btn{
+      background:none;
+      border:none;
+      color:var(--text-muted);
+      padding:.5rem 1rem;
+      border-radius:8px;
+      transition:all .3s ease;
+      cursor:pointer;
+      white-space:nowrap;
+      flex-shrink:0;
+      display:inline-flex;
+      align-items:center;
+    }
+    .action-btn:hover{color:var(--primary-color);background:rgba(102,126,234,.1)}
+    .action-btn.liked{color:var(--danger-color)}
+    .action-btn.text-danger{color:var(--danger-color)!important}
+    .action-btn.text-danger:hover{color:#fff!important;background:var(--danger-color)!important}
+    .loading{display:none;text-align:center;padding:2rem}
+    .spinner{width:40px;height:40px;border:4px solid rgba(102,126,234,.3);border-top:4px solid var(--primary-color);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 1rem}
+    @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+    .sidebar{background:rgba(45,45,45,.4);border-radius:16px;padding:1.5rem;margin-bottom:2rem}
+    .sidebar h5{color:var(--primary-color);margin-bottom:1rem}
+    .post-content pre code{display:block;padding:1rem;border-radius:12px}
+    .post-content pre{background:rgba(0,0,0,.35);border:1px solid var(--border-color)}
+    
+    /* 🔧 FIX IMMAGINI E VIDEO - LAYOUT COMPLETO! */
+    .post-media {
+      margin: 1rem 0;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,.3);
+    }
+    .post-content img{
+      max-width:70%!important;
+      width:70%;
+      height:auto!important;
+      border-radius:12px;
+      margin:1rem 0;
+      box-shadow:0 4px 12px rgba(0,0,0,.3);
+      display:block;
+      object-fit:cover;
+    }
+    .post-content video{
+      max-width:70%!important;
+      width:70%;
+      height:auto;
+      border-radius:12px;
+      margin:1rem 0;
+      box-shadow:0 4px 12px rgba(0,0,0,.3);
+      background: #000;
+    }
+    .video-info {
+      padding: 0.5rem;
+      background: rgba(0,0,0,0.5);
+      text-align: center;
+    }
+    .video-info a {
+      color: var(--primary-color);
+      text-decoration: none;
+    }
+    .video-info a:hover {
+      text-decoration: underline;
+    }
+    
+    /* Solo su desktop */
+    @media (min-width: 768px) {
+      .post-content img {
+        max-width: 70% !important;
+        width: 70%;
+      }
+      .post-content video {
+        max-width: 70% !important;
+        width: 70%;
+      }
+    }
+    
+    /* 🔧 CONTENIMENTO GENERALE - FORZA TUTTO A STARE NEI CONTAINER */
+    .post-card{
+      overflow:hidden;
+      word-wrap:break-word;
+      word-break:break-word;
+    }
+    .post-content{
+      overflow-wrap:break-word;
+      word-break:break-word;
+      max-width:100%;
+    }
+    .post-content *{
+      max-width:100%;
+      box-sizing:border-box;
+    }
+    .post-content pre{
+      overflow-x:auto;
+      max-width:100%;
+      white-space:pre-wrap;
+      word-wrap:break-word;
+    }
+    .post-content code{
+      word-wrap:break-word;
+      white-space:pre-wrap;
+    }
+    
+    /* 💬 COMMENTI STYLES - SISTEMA LAYOUT FISSO */
+    .comments-section{
+      margin-top:1rem;
+      padding-top:1rem;
+      border-top:1px solid var(--border-color);
+      overflow:hidden;
+      word-wrap:break-word;
+    }
+    .comment-item{
+      padding:0.75rem 0;
+      border-bottom:1px solid rgba(255,255,255,.05);
+      overflow:hidden;
+    }
+    .comment-item:last-child{
+      border-bottom:none;
+    }
+    .comment-avatar{
+      width:32px;
+      height:32px;
+      min-width:32px;
+      min-height:32px;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:600;
+      color:#fff;
+      font-size:0.8rem;
+      margin-right:0.75rem;
+      flex-shrink:0;
+    }
+    .comment-content{
+      font-size:0.9rem;
+      line-height:1.4;
+      margin-bottom:0.25rem;
+      word-wrap:break-word;
+      overflow-wrap:break-word;
+      max-width:100%;
+    }
+    .comment-meta{
+      font-size:0.75rem;
+      color:var(--text-muted);
+      display:flex;
+      align-items:center;
+      gap:0.5rem;
+      flex-wrap:wrap;
+    }
+    .comment-author{
+      font-weight:600;
+      color:var(--primary-color);
+    }
+    .comment-form{
+      margin-top:1rem;
+      padding:1rem;
+      background:rgba(255,255,255,.02);
+      border-radius:12px;
+      border:1px dashed var(--border-color);
+      overflow:hidden;
+    }
+    .comment-input{
+      background:rgba(45,45,45,.8);
+      border:1px solid var(--border-color);
+      color:var(--text-light);
+      border-radius:8px;
+      padding:0.5rem;
+      font-size:0.9rem;
+      resize:vertical;
+      min-height:60px;
+      width:100%;
+      max-width:100%;
+      box-sizing:border-box;
+    }
+    .comment-input:focus{
+      background:rgba(45,45,45,.95);
+      border-color:var(--primary-color);
+      box-shadow:0 0 0 .15rem rgba(102,126,234,.25);
+      outline:none;
+    }
+    .comment-input::placeholder{
+      color:var(--text-muted);
+    }
+    .comment-btn{
+      background:var(--primary-color);
+      color:white;
+      border:none;
+      padding:0.5rem 1rem;
+      border-radius:6px;
+      font-size:0.85rem;
+      font-weight:600;
+      cursor:pointer;
+      transition:all .2s ease;
+      white-space:nowrap;
+    }
+    .comment-btn:hover{
+      background:var(--secondary-color);
+      transform:translateY(-1px);
+    }
+    .comment-btn:disabled{
+      background:var(--text-muted);
+      cursor:not-allowed;
+      transform:none;
+    }
+    .comment-delete{
+      color:var(--danger-color);
+      background:none;
+      border:none;
+      font-size:0.7rem;
+      padding:0.2rem 0.4rem;
+      border-radius:4px;
+      cursor:pointer;
+      transition:background .2s ease;
+      white-space:nowrap;
+    }
+    .comment-delete:hover{
+      background:rgba(255,107,107,.1);
+    }
+    .comments-toggle{
+      color:var(--text-muted);
+      background:none;
+      border:none;
+      font-size:0.85rem;
+      cursor:pointer;
+      transition:color .2s ease;
+      white-space:nowrap;
+    }
+    .comments-toggle:hover{
+      color:var(--primary-color);
+    }
+    .comments-counter{
+      font-size:0.8rem;
+      color:var(--text-muted);
+      margin-left:0.5rem;
+    }
+    
+    /* File Upload */
+    .file-upload-area{
+      border:2px dashed var(--border-color);
+      border-radius:12px;
+      padding:2rem;
+      text-align:center;
+      background:rgba(45,45,45,.3);
+      transition:all .3s ease;
+      margin:1rem 0;
+    }
+    .file-upload-area:hover{
+      border-color:var(--primary-color);
+      background:rgba(102,126,234,.1);
+    }
+    .file-upload-area.dragover{
+      border-color:var(--accent-color);
+      background:rgba(240,147,251,.1);
+    }
+    .file-preview{
+      margin-top:1rem;
+      text-align:center;
+    }
+    .file-preview img{
+      max-width:200px;
+      max-height:200px;
+      border-radius:10px;
+      box-shadow:0 4px 15px rgba(0,0,0,.3);
+    }
+    .file-preview video{
+      max-width:300px;
+      max-height:200px;
+      border-radius:10px;
+      box-shadow:0 4px 15px rgba(0,0,0,.3);
+    }
+    
+    /* Testimonianze Styles */
+    .testimonials-section{padding:4rem 0;background:rgba(0,0,0,.2)}
+    .testimonial-card{background:rgba(45,45,45,.8);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:2rem;height:100%;transition:all .3s ease}
+    .testimonial-card:hover{transform:translateY(-10px);box-shadow:0 20px 40px rgba(0,0,0,.4)}
+    .testimonial-avatar{width:80px;height:80px;border-radius:50%;object-fit:cover;margin:0 auto 1.5rem;display:block;border:3px solid var(--primary-color)}
+    .testimonial-stars{color:#ffd700;font-size:1.2rem;margin-bottom:1rem;text-align:center}
+    .testimonial-text{font-style:italic;margin-bottom:1.5rem;line-height:1.6;color:var(--text-light)}
+    .testimonial-author{text-align:center}
+    .testimonial-name{font-weight:600;color:var(--primary-color);margin-bottom:.5rem}
+    .testimonial-course{color:var(--text-muted);font-size:.9rem}
+    
+    /* Rating Stars Interattive */
+    .rating-stars{display:flex;gap:0.25rem;justify-content:center;margin:1rem 0}
+    .rating-star{font-size:1.5rem;color:#6c757d;cursor:pointer;transition:color .2s ease}
+    .rating-star:hover,.rating-star.active{color:#ffd700}
+    
+    /* Account Settings */
+    .settings-section{
+      background:rgba(45,45,45,.6);
+      border:1px solid var(--border-color);
+      border-radius:15px;
+      padding:2rem;
+      margin-bottom:2rem;
+    }
+    .danger-zone{
+      border:2px dashed var(--danger-color);
+      border-radius:15px;
+      padding:2rem;
+      background:rgba(255,107,107,.1);
+    }
+    
+    /* 🔔 NOTIFICHE STYLES - SISTEMA COMPLETO */
+    .notification-item {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+      transition: all .3s ease;
+      cursor: pointer;
+      position: relative;
+    }
+    .notification-item:hover {
+      background: rgba(102,126,234,.1);
+    }
+    .notification-item:last-child {
+      border-bottom: none;
+    }
+    .notification-item.unread {
+      background: rgba(102,126,234,.05);
+      border-left: 4px solid var(--primary-color);
+    }
+    .notification-item.unread::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: 1rem;
+      transform: translateY(-50%);
+      width: 8px;
+      height: 8px;
+      background: var(--primary-color);
+      border-radius: 50%;
+      animation: pulse-notification 2s infinite;
+    }
+    @keyframes pulse-notification {
+      0% { opacity: 1; transform: translateY(-50%) scale(1); }
+      50% { opacity: 0.5; transform: translateY(-50%) scale(1.2); }
+      100% { opacity: 1; transform: translateY(-50%) scale(1); }
+    }
+    .notification-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      margin-right: 0.75rem;
+      flex-shrink: 0;
+    }
+    .notification-icon.like { background: linear-gradient(45deg, #ff6b6b, #ff8e8e); color: white; }
+    .notification-icon.comment { background: linear-gradient(45deg, #4facfe, #00f2fe); color: white; }
+    .notification-icon.course_enrollment { background: linear-gradient(45deg, #43e97b, #38f9d7); color: white; }
+    .notification-icon.new_course { background: linear-gradient(45deg, #667eea, #764ba2); color: white; }
+    .notification-icon.lesson_completed { background: linear-gradient(45deg, #ffeaa7, #fdcb6e); color: #2d3436; }
+    .notification-icon.course_completed { background: linear-gradient(45deg, #fd79a8, #fdcb6e); color: white; }
+    .notification-icon.welcome { background: linear-gradient(45deg, #a8edea, #fed6e3); color: #2d3436; }
+    .notification-icon.new_post { background: linear-gradient(45deg, #fad0c4, #ffd1ff); color: #2d3436; }
+    .notification-content {
+      flex-grow: 1;
+      min-width: 0;
+    }
+    .notification-title {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: var(--text-light);
+      font-size: 0.95rem;
+    }
+    .notification-message {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      line-height: 1.4;
+    }
+    .notification-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .notification-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--border-color);
+    }
+    
+    /* Notification Badge Animation */
+    @keyframes badge-pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    .badge-pulse {
+      animation: badge-pulse 0.5s ease-in-out;
+    }
+    
+    /* Notification Bell Animation */
+    @keyframes bell-ring {
+      0% { transform: rotate(0deg); }
+      10% { transform: rotate(14deg); }
+      20% { transform: rotate(-8deg); }
+      30% { transform: rotate(14deg); }
+      40% { transform: rotate(-4deg); }
+      50% { transform: rotate(10deg); }
+      60% { transform: rotate(0deg); }
+      100% { transform: rotate(0deg); }
+    }
+    .bell-ring {
+      animation: bell-ring 1s ease-in-out;
+    }
+    
+    @media (max-width:991.98px){.navbar .navbar-collapse{background:rgba(26,26,26,.98);border:1px solid var(--border-color);border-radius:12px;padding:.5rem 1rem;margin-top:.75rem}.navbar-nav .nav-link{padding:.5rem 0}}
+    @media (max-width:768px){
+      .hero-title{font-size:2.5rem}
+      .hero-subtitle{font-size:1rem}
+      .post-card{padding:1rem;overflow:hidden}
+      .testimonials-section{padding:2rem 0}
+      .testimonial-card{padding:1.5rem}
+      .comment-form{padding:0.75rem}
+      .comment-input{min-height:50px}
+      .post-actions{gap:0.5rem;flex-wrap:wrap}
+      .action-btn{padding:0.4rem 0.8rem;font-size:0.8rem}
+      .post-content img{margin:0.5rem 0; max-width:100%!important; width:100%;}
+      .post-content video{max-width:100%!important; width:100%;}
+      .comment-meta{flex-wrap:wrap;gap:0.25rem}
+      
+      /* 🎯 FIX MOBILE: CARD A TUTTA LARGHEZZA */
+      .row {
+        justify-content: center !important;
+      }
+      .col-md-4, .col-lg-4 {
+        display: flex !important;
+        justify-content: center !important;
+        margin-bottom: 2rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        align-items:center !important;
+      }
+      .glass-card, .testimonial-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
+      }
+      
+      /* Features Cards - Larghezza completa */
+      #guest-section .row.mt-5 {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+      }
+      #guest-section .col-md-4 {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 0 1.5rem 0 !important;
+      }
+      
+      /* Testimonials - Larghezza completa */
+      #testimonials-container .row {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+      }
+      #testimonials-container .col-lg-4 {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 0 1.5rem 0 !important;
+      }
+    }
+    
+    /* 📱 MOBILE SMALL - Card a tutta larghezza anche sui piccoli */
+    @media (max-width:576px){
+      .glass-card, .testimonial-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto 1.5rem auto !important;
+      }
+
+      .col-md-4, .col-lg-4 {
+        display: block !important;
+        justify-content: center !important;
+        margin-bottom: 2rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        align-items:center !important;
+      }
+      
+      .hero-title{font-size:2rem}
+      .hero-subtitle{font-size:0.9rem}
+    }
+    .fade-in{animation:fadeIn .6s ease-in}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .slide-up{animation:slideUp .4s ease-out}
+    @keyframes slideUp{from{transform:translateY(100px);opacity:0}to{transform:translateY(0);opacity:1}}
+    
+    /* 🛡️ CONTENIMENTO GLOBALE - IMPEDISCE OVERFLOW */
+    .container, .container-fluid{
+      overflow-x:hidden;
+    }
+    .glass-card{
+      overflow:hidden;
+      word-wrap:break-word;
+    }
+    .col-lg-8, .col-lg-4{
+      overflow-x:hidden;
+    }
+    *{
+      max-width:100%;
+      box-sizing:border-box;
+    }
+    .d-flex{
+      flex-wrap:wrap;
+    }
+    
+    /* 🎓 NUOVO: CSS SISTEMA CORSI */
+    .course-card {
+      background: rgba(45,45,45,.8);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all .3s ease;
+      height: 100%;
+    }
+    .course-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0,0,0,.4);
+      border-color: var(--primary-color);
+    }
+    .course-thumbnail {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+    .course-meta {
+      padding: 1rem;
+    }
+    .course-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-light);
+      margin-bottom: 0.5rem;
+    }
+    .course-description {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      line-height: 1.4;
+    }
+    .course-tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .course-tag {
+      background: var(--primary-color);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .course-tag.level-beginner { background: var(--success-color); }
+    .course-tag.level-intermediate { background: var(--warning-color); color: #333; }
+    .course-tag.level-advanced { background: var(--danger-color); }
+    .course-price {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent-color);
+      margin-bottom: 0.5rem;
+    }
+    .course-price.free {
+      color: var(--success-color);
+    }
+    .course-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+    .course-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .course-info-card {
+      background: rgba(45,45,45,.6);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .enrollment-section {
+      margin-top: 1.5rem;
+      text-align: center;
+    }
+    .enrolled-students {
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .course-content {
+      background: rgba(45,45,45,.3);
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+    .course-content h6 {
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .lesson-item {
+      background: rgba(45,45,45,.4);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+      transition: all .3s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .lesson-item:hover {
+      background: rgba(102,126,234,.1);
+      border-color: var(--primary-color);
+    }
+    .lesson-item.completed {
+      background: rgba(79,172,254,.1);
+      border-color: var(--success-color);
+    }
+    .lesson-item.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .lesson-title {
+      font-weight: 600;
+      color: var(--text-light);
+    }
+    .lesson-duration {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .lesson-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .lesson-progress {
+      background: rgba(45,45,45,.6);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .progress {
+      background: rgba(45,45,45,.8);
+      border-radius: 10px;
+      height: 8px;
+    }
+    .progress-bar {
+      background: linear-gradient(45deg, var(--primary-color), var(--success-color));
+      border-radius: 10px;
+      transition: width .3s ease;
+    }
+    .lesson-content {
+      background: rgba(45,45,45,.2);
+      border-radius: 16px;
+      padding: 2rem;
+    }
+    .lesson-body {
+      background: rgba(45,45,45,.4);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2rem;
+      min-height: 400px;
+      color: var(--text-light);
+      line-height: 1.6;
+    }
+    .lesson-body h1, .lesson-body h2, .lesson-body h3 {
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+    }
+    .lesson-body code {
+      background: rgba(0,0,0,.5);
+      color: var(--accent-color);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+    }
+    .lesson-body pre {
+      background: rgba(0,0,0,.7);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1rem;
+      overflow-x: auto;
+    }
+    .lesson-actions {
+      background: rgba(45,45,45,.4);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    .lesson-navigation {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    /* Mobile responsiveness per corsi */
+    @media (max-width: 768px) {
+      .course-thumbnail {
+        height: 150px;
+      }
+      .course-meta {
+        padding: 0.75rem;
+      }
+      .course-actions {
+        flex-direction: column;
+      }
+      .lesson-navigation {
+        flex-direction: column;
+        width: 100%;
+      }
+      .lesson-actions .d-flex {
+        flex-direction: column;
+        gap: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Background Animation -->
+  <div class="bg-animation">
+    <div class="floating-shapes"><div class="shape"></div><div class="shape"></div><div class="shape"></div></div>
+  </div>
+
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="/"><i class="fas fa-graduation-cap me-2"></i>CourseConnect</a>
+      <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <i class="fas fa-bars" style="font-size:1.25rem"></i>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item" id="nav-login"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#loginModal"><i class="fas fa-sign-in-alt me-2"></i>Accedi</a></li>
+          <li class="nav-item" id="nav-register"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#registerModal"><i class="fas fa-user-plus me-2"></i>Registrati</a></li>
+          
+          <!-- 🎓 NUOVO: Link Corsi per tutti -->
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#coursesListModal" onclick="loadCoursesForUsers()">
+              <i class="fas fa-graduation-cap me-2"></i>Corsi
+            </a>
+          </li>
+          
+          <!-- Notifications Bell - Solo per utenti loggati -->
+          <li class="nav-item" id="nav-notifications" style="display:none;">
+            <a class="nav-link position-relative" href="#" data-bs-toggle="modal" data-bs-target="#notificationsModal" onclick="loadNotifications()">
+              <i class="fas fa-bell" id="notifications-bell"></i>
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+                    id="notifications-badge" style="display:none;">
+                0
+              </span>
+            </a>
+          </li>
+          
+          <li class="nav-item dropdown" id="nav-user" style="display:none;">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+              <i class="fas fa-user me-2"></i>Ciao, <span id="user-name"></span>!
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#" onclick="showSettings()">
+                <i class="fas fa-cog me-2"></i>Impostazioni Account
+              </a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#" onclick="logout()">
+                <i class="fas fa-sign-out-alt me-2"></i>Logout
+              </a></li>
+            </ul>
+          </li>
+          <li class="nav-item" id="nav-review" style="display:none;"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#reviewModal"><i class="fas fa-star me-2"></i>Lascia Recensione</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="container mt-5 pt-5">
+    <!-- Guest Section -->
+    <div id="guest-section">
+      <div class="hero-section fade-in">
+        <h1 class="hero-title"><i class="fas fa-graduation-cap me-3"></i>CourseConnect</h1>
+        <p class="hero-subtitle">Il social network dedicato ai corsisti. Connettiti, condividi e cresci insieme alla community di apprendimento più dinamica!</p>
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+          <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#registerModal"><i class="fas fa-rocket me-2"></i>Inizia Ora</button>
+          <button class="btn btn-outline-primary btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal"><i class="fas fa-sign-in-alt me-2"></i>Accedi</button>
+        </div>
+      </div>
+
+      <!-- Features -->
+      <div class="row mt-5">
+        <div class="col-md-4 mb-4"><div class="glass-card text-center p-4 h-100 fade-in"><i class="fas fa-users fa-3x mb-3" style="color:var(--primary-color)"></i><h4>Community</h4><p>Connettiti con corsisti da tutta Italia, condividi esperienze e crea relazioni durature.</p></div></div>
+        <div class="col-md-4 mb-4"><div class="glass-card text-center p-4 h-100 fade-in"><i class="fas fa-lightbulb fa-3x mb-3" style="color:var(--accent-color)"></i><h4>Condivisione</h4><p>Condividi progetti, successi e sfide. Impara dagli altri e aiuta chi è agli inizi.</p></div></div>
+        <div class="col-md-4 mb-4"><div class="glass-card text-center p-4 h-100 fade-in"><i class="fas fa-chart-line fa-3x mb-3" style="color:var(--success-color)"></i><h4>Crescita</h4><p>Accelera il tuo apprendimento attraverso feedback, collaborazioni e opportunità.</p></div></div>
+      </div>
+
+      <!-- Testimonianze -->
+      <div class="testimonials-section mt-5">
+        <div class="container">
+          <div class="text-center mb-5">
+            <h2 class="hero-title" style="font-size:2.5rem;margin-bottom:1rem">Cosa Dicono i Nostri Corsisti</h2>
+            <p class="hero-subtitle">Storie di successo reali dalla community CourseConnect</p>
+          </div>
+          
+          <div id="testimonials-container">
+            <!-- Le testimonianze verranno caricate dinamicamente -->
+            <div class="text-center">
+              <div class="spinner"></div>
+              <p>Caricamento testimonianze...</p>
+            </div>
+          </div>
+
+          <div class="text-center mt-5">
+            <p class="text-muted mb-4">Unisciti a oltre <strong>1.500+ corsisti</strong> che hanno già trasformato la loro carriera</p>
+            <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#registerModal"><i class="fas fa-star me-2"></i>Inizia la Tua Storia di Successo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Section -->
+    <div id="user-section" style="display:none;">
+      <div class="row">
+        <div class="col-lg-8">
+          <!-- Create Post -->
+          <div class="glass-card p-4 mb-4 slide-up">
+            <h5 class="mb-3"><i class="fas fa-edit me-2"></i>Cosa stai imparando oggi?</h5>
+            
+            <!-- TOOLBAR MARKDOWN - RIPRISTINATA! -->
+            <div class="d-flex gap-2 flex-wrap mb-2">
+              <button class="btn btn-sm btn-outline-primary" type="button" onclick="mdWrap('**','**')"><strong>B</strong></button>
+              <button class="btn btn-sm btn-outline-primary" type="button" onclick="mdWrap('*','*')"><em>I</em></button>
+              <button class="btn btn-sm btn-outline-primary" type="button" onclick="mdWrap('`','`')">`code`</button>
+              <button class="btn btn-sm btn-outline-primary" type="button" onclick="mdWrap('\n```\n','\n```\n', true)">code block</button>
+              <button class="btn btn-sm btn-outline-primary" type="button" onclick="insertLink()">link</button>
+              <button class="btn btn-sm btn-outline-primary" type="button" onclick="triggerImagePick()"><i class="fa-regular fa-image me-1"></i> immagine</button>
+              <input type="file" id="image-input" accept="image/*" class="d-none" />
+            </div>
+            
+            <form id="postForm" enctype="multipart/form-data">
+              <div class="mb-3">
+                <textarea class="form-control" id="post-content" rows="5" placeholder="Markdown supportato: **grassetto**, *corsivo*, `codice`, ```blocchi```, ![alt](url)" maxlength="4000"></textarea>
+                <div class="text-end mt-2"><small class="text-muted"><span id="char-count">0</span>/4000 caratteri</small></div>
+              </div>
+              
+              <!-- File Upload Area per Video/Immagini -->
+              <div class="file-upload-area" id="fileUploadArea">
+                <i class="fas fa-cloud-upload-alt fa-2x mb-2 text-muted"></i>
+                <p class="mb-2">Trascina qui le tue immagini o video</p>
+                <p class="text-muted small mb-3">Oppure clicca per selezionare i file</p>
+                <input type="file" id="fileInput" accept="image/*,video/*" class="d-none">
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('fileInput').click()">
+                  <i class="fas fa-folder-open me-1"></i>Scegli file
+                </button>
+                <div class="mt-2 text-muted small">
+                  <i class="fas fa-info-circle me-1"></i>
+                  Formati supportati: PNG, JPG, GIF, MP4, AVI, MOV (max 50MB)
+                </div>
+              </div>
+              
+              <!-- File Preview -->
+              <div id="filePreview" class="file-preview d-none"></div>
+              
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-2"></i>Pubblica</button>
+                <button class="btn btn-outline-primary" type="button" onclick="previewPost()"><i class="fa-regular fa-eye me-2"></i>Anteprima</button>
+              </div>
+              <div id="post-preview" class="mt-3" style="display:none"><div class="border rounded p-3" id="post-preview-body"></div></div>
+            </form>
+          </div>
+
+          <!-- Posts Feed -->
+          <div id="posts-container"><div class="loading"><div class="spinner"></div><p>Caricamento post...</p></div></div>
+        </div>
+
+        <div class="col-lg-4">
+          <!-- Sidebar dinamica -->
+          <div class="sidebar glass-card">
+            <h5><i class="fas fa-fire me-2"></i>Corsisti Attivi</h5>
+            <div id="active-users"></div>
+          </div>
+
+          <div class="sidebar glass-card">
+            <h5><i class="fas fa-star me-2"></i>Tips del Giorno</h5>
+            <p class="mb-2"><strong>💡 Coding:</strong> Usa console.log() per debuggare il JavaScript</p>
+            <p class="mb-2"><strong>🎨 Design:</strong> I colori complementari creano contrasto efficace</p>
+            <p class="mb-0"><strong>📈 Marketing:</strong> A/B test per ottimizzare le conversioni</p>
+          </div>
+
+          <!-- Pulsante Recensione -->
+          <div class="sidebar glass-card">
+            <h5><i class="fas fa-star me-2"></i>La Tua Esperienza</h5>
+            <p class="mb-3">Condividi la tua esperienza con CourseConnect e aiuta altri corsisti!</p>
+            <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#reviewModal">
+              <i class="fas fa-star me-2"></i>Lascia una Recensione
+            </button>
+          </div>
+
+          <!-- Admin Panel - Solo per Admin -->
+          <div class="sidebar glass-card" id="admin-panel" style="display:none;">
+            <h5><i class="fas fa-cog me-2"></i>Pannello Admin</h5>
+            <div class="d-grid gap-2">
+              <button class="btn btn-outline-primary btn-sm" onclick="showCoursesManager()">
+                <i class="fas fa-book me-2"></i>Gestisci Corsi
+              </button>
+              <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createCourseModal">
+                <i class="fas fa-plus me-2"></i>Crea Nuovo Corso
+              </button>
+              <button class="btn btn-outline-primary btn-sm" onclick="loadCourseStats()">
+                <i class="fas fa-chart-bar me-2"></i>Statistiche Corsi
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL REGISTRAZIONE -->
+  <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h5 class="modal-title" id="registerModalLabel"><i class="fas fa-user-plus me-2"></i>Unisciti a CourseConnect</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+        </div>
+        <div class="modal-body">
+          <div class="text-center mb-4">
+            <p class="text-muted">Inizia la tua storia di successo oggi stesso!</p>
+          </div>
+          <form id="register-form" novalidate>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3"><label for="register-nome" class="form-label">Nome *</label><input type="text" class="form-control" id="register-nome" required><div class="invalid-feedback">Il nome è obbligatorio</div></div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3"><label for="register-cognome" class="form-label">Cognome *</label><input type="text" class="form-control" id="register-cognome" required><div class="invalid-feedback">Il cognome è obbligatorio</div></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3"><label for="register-username" class="form-label">Username *</label><input type="text" class="form-control" id="register-username" required><div class="invalid-feedback">L'username è obbligatorio</div></div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3"><label for="register-email" class="form-label">Email *</label><input type="email" class="form-control" id="register-email" required><div class="invalid-feedback">Inserisci un'email valida</div></div>
+              </div>
+            </div>
+            <div class="mb-3"><label for="register-corso" class="form-label">Corso di Studio *</label>
+              <select class="form-select" id="register-corso" required>
+                <option value="">Seleziona il tuo corso...</option>
+                <option value="Sviluppo Web Full-Stack">Sviluppo Web Full-Stack</option>
+                <option value="UI/UX Design">UI/UX Design</option>
+                <option value="Digital Marketing">Digital Marketing</option>
+                <option value="Data Science">Data Science</option>
+                <option value="Mobile Development">Mobile Development</option>
+                <option value="Cybersecurity">Cybersecurity</option>
+                <option value="Cloud Computing">Cloud Computing</option>
+                <option value="Game Development">Game Development</option>
+                <option value="Web Design">Web Design</option>
+                <option value="Graphic Design">Graphic Design</option>
+                <option value="E-commerce">E-commerce</option>
+                <option value="Social Media Management">Social Media Management</option>
+                <option value="Altro">Altro</option>
+              </select>
+              <div class="invalid-feedback">Seleziona un corso dal menu</div>
+            </div>
+            <div class="mb-3"><label for="register-password" class="form-label">Password *</label><input type="password" class="form-control" id="register-password" required minlength="6"><div class="form-text">Minimo 6 caratteri</div><div class="invalid-feedback">La password deve essere di almeno 6 caratteri</div></div>
+            <div class="mb-3"><label for="register-bio" class="form-label">Bio (Opzionale)</label><textarea class="form-control" id="register-bio" rows="2" placeholder="Raccontaci di te e dei tuoi obiettivi..."></textarea></div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+          <button type="button" class="btn btn-primary" onclick="register()" id="register-btn"><i class="fas fa-user-plus me-2"></i>Unisciti alla Community</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL LOGIN -->
+  <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h5 class="modal-title" id="loginModalLabel"><i class="fas fa-sign-in-alt me-2"></i>Bentornato in CourseConnect</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+        </div>
+        <div class="modal-body">
+          <form id="login-form">
+            <div class="mb-3"><label for="login-username" class="form-label">Username</label><input type="text" class="form-control" id="login-username" required></div>
+            <div class="mb-3"><label for="login-password" class="form-label">Password</label><input type="password" class="form-control" id="login-password" required></div>
+            <div class="text-center"><small class="text-muted">🔧 Account di test: admin/admin123</small></div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+          <button type="button" class="btn btn-primary" onclick="login()"><i class="fas fa-sign-in-alt me-2"></i>Accedi</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL RECENSIONE -->
+  <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h5 class="modal-title" id="reviewModalLabel"><i class="fas fa-star me-2"></i>Lascia una Recensione</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+        </div>
+        <div class="modal-body">
+          <div class="text-center mb-4">
+            <p class="text-muted">Condividi la tua esperienza con CourseConnect!</p>
+          </div>
+          <form id="review-form" novalidate>
+            <div class="mb-4">
+              <label class="form-label">La tua foto *</label>
+              <div class="d-flex align-items-center gap-3">
+                <div id="review-avatar-preview" class="testimonial-avatar" style="width:60px;height:60px;background:var(--primary-color);display:flex;align-items:center;justify-content:center;color:white;font-weight:600;"></div>
+                <div>
+                  <input type="file" id="review-photo" accept="image/*" class="form-control" required>
+                  <small class="text-muted">Formati supportati: JPG, PNG, GIF</small>
+                </div>
+              </div>
+              <div class="invalid-feedback">Carica una tua foto</div>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label">Valutazione *</label>
+              <div class="rating-stars" id="review-rating">
+                <i class="fas fa-star rating-star" data-rating="1"></i>
+                <i class="fas fa-star rating-star" data-rating="2"></i>
+                <i class="fas fa-star rating-star" data-rating="3"></i>
+                <i class="fas fa-star rating-star" data-rating="4"></i>
+                <i class="fas fa-star rating-star" data-rating="5"></i>
+              </div>
+              <input type="hidden" id="review-rating-value" required>
+              <div class="text-center">
+                <small class="text-muted">Clicca sulle stelle per valutare</small>
+              </div>
+              <div class="invalid-feedback">Seleziona una valutazione</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="review-text" class="form-label">La tua recensione *</label>
+              <textarea class="form-control" id="review-text" rows="4" placeholder="Racconta la tua esperienza con CourseConnect..." maxlength="500" required></textarea>
+              <div class="text-end mt-2"><small class="text-muted"><span id="review-char-count">0</span>/500 caratteri</small></div>
+              <div class="invalid-feedback">Scrivi una recensione</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="review-location" class="form-label">Città (Opzionale)</label>
+              <input type="text" class="form-control" id="review-location" placeholder="es. Milano">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="button" class="btn btn-primary" onclick="submitReview()" id="review-submit-btn">
+            <i class="fas fa-star me-2"></i>Pubblica Recensione
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications Center Modal -->
+  <div class="modal fade" id="notificationsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-bell me-2"></i>Centro Notifiche
+            <span class="badge bg-danger ms-2" id="modal-notifications-count" style="display:none;">0</span>
+          </h5>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="markAllNotificationsRead()" id="mark-all-btn">
+              <i class="fas fa-check-double me-1"></i>Segna tutte lette
+            </button>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+        </div>
+        <div class="modal-body p-0" style="max-height: 70vh; overflow-y: auto;">
+          <div id="notifications-list">
+            <div class="text-center p-4">
+              <div class="spinner"></div>
+              <p>Caricamento notifiche...</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="d-flex justify-content-between w-100 align-items-center">
+            <small class="text-muted">Le notifiche vengono aggiornate automaticamente</small>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadNotifications()">
+              <i class="fas fa-sync me-1"></i>Aggiorna
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Account Settings Modal -->
+  <div class="modal fade" id="settingsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-cog me-2"></i>Impostazioni Account
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Account Info -->
+          <div class="settings-section">
+            <h6><i class="fas fa-user-circle me-2"></i>Informazioni Account</h6>
+            <div id="currentUserInfo"></div>
+          </div>
+
+          <!-- Danger Zone -->
+          <div class="danger-zone">
+            <h6 class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Zona Pericolosa</h6>
+            <p class="text-muted mb-3">
+              Una volta eliminato l'account, non potrai più recuperarlo. Tutti i tuoi post, commenti e like verranno eliminati permanentemente.
+            </p>
+            <button class="btn btn-danger" onclick="showDeleteAccountModal()">
+              <i class="fas fa-trash me-1"></i>Elimina Account
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Account Confirmation Modal -->
+  <div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger">
+          <h5 class="modal-title text-white">
+            <i class="fas fa-exclamation-triangle me-2"></i>Conferma Eliminazione Account
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-danger">
+            <strong>Attenzione!</strong> Questa azione è irreversibile. Tutti i tuoi dati verranno eliminati permanentemente.
+          </div>
+
+          <form id="deleteAccountForm">
+            <div class="mb-3">
+              <label class="form-label">Perché vuoi eliminare il tuo account?</label>
+              <select class="form-select" id="deletionReason" required>
+                <option value="">Seleziona un motivo</option>
+                <option value="Non uso più la piattaforma">Non uso più la piattaforma</option>
+                <option value="Privacy e sicurezza">Preoccupazioni per privacy e sicurezza</option>
+                <option value="Contenuti inappropriati">Troppi contenuti inappropriati</option>
+                <option value="Problemi tecnici">Problemi tecnici ricorrenti</option>
+                <option value="Alternative migliori">Ho trovato alternative migliori</option>
+                <option value="Altro">Altro motivo</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Feedback aggiuntivo (opzionale)</label>
+              <textarea class="form-control" id="deletionFeedback" rows="3" 
+                placeholder="Aiutaci a migliorare! Cosa potremmo fare diversamente?"></textarea>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="confirmDeletion" required>
+                <label class="form-check-label" for="confirmDeletion">
+                  Confermo di voler eliminare definitivamente il mio account e tutti i dati associati
+                </label>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-secondary flex-fill" data-bs-dismiss="modal">
+                Annulla
+              </button>
+              <button type="submit" class="btn btn-danger flex-fill">
+                <i class="fas fa-trash me-1"></i>Elimina Account
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Course Modal - Solo Admin -->
+  <div class="modal fade" id="createCourseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-plus me-2"></i>Crea Nuovo Corso
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="createCourseForm" novalidate>
+            <div class="row">
+              <div class="col-md-8">
+                <div class="mb-3">
+                  <label for="course-title" class="form-label">Titolo Corso *</label>
+                  <input type="text" class="form-control" id="course-title" required maxlength="200"
+                         placeholder="es. Fondamenti di Web Design Moderno">
+                  <div class="invalid-feedback">Il titolo è obbligatorio</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="course-type" class="form-label">Tipo *</label>
+                  <select class="form-select" id="course-type" required>
+                    <option value="">Seleziona tipo</option>
+                    <option value="CORSI">CORSI</option>
+                    <option value="TRAINING">TRAINING</option>
+                  </select>
+                  <div class="invalid-feedback">Seleziona un tipo</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="course-category" class="form-label">Categoria *</label>
+                  <select class="form-select" id="course-category" required>
+                    <option value="">Seleziona categoria</option>
+                    <option value="Web Design">Web Design</option>
+                    <option value="SEO e Marketing">SEO e Marketing</option>
+                    <option value="Sviluppo Web">Sviluppo Web</option>
+                    <option value="Business e Marketing">Business e Marketing</option>
+                    <option value="Graphic Design">Graphic Design</option>
+                    <option value="Mobile Development">Mobile Development</option>
+                    <option value="Data Science">Data Science</option>
+                    <option value="Cybersecurity">Cybersecurity</option>
+                  </select>
+                  <div class="invalid-feedback">Seleziona una categoria</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="mb-3">
+                  <label for="course-level" class="form-label">Livello *</label>
+                  <select class="form-select" id="course-level" required>
+                    <option value="">Livello</option>
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+                  <div class="invalid-feedback">Seleziona livello</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="mb-3">
+                  <label for="course-duration" class="form-label">Durata (ore)</label>
+                  <input type="number" class="form-control" id="course-duration" min="0" max="200" 
+                         placeholder="40">
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="course-description" class="form-label">Descrizione *</label>
+              <textarea class="form-control" id="course-description" rows="4" required maxlength="1000"
+                        placeholder="Descrivi cosa impareranno gli studenti, obiettivi del corso, prerequisiti..."></textarea>
+              <div class="text-end mt-1"><small class="text-muted"><span id="desc-count">0</span>/1000 caratteri</small></div>
+              <div class="invalid-feedback">La descrizione è obbligatoria</div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-8">
+                <div class="mb-3">
+                  <label for="course-thumbnail" class="form-label">URL Thumbnail</label>
+                  <input type="url" class="form-control" id="course-thumbnail" 
+                         placeholder="https://images.unsplash.com/photo-...">
+                  <small class="text-muted">Usa Unsplash o link immagine diretto</small>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="course-price" class="form-label">Prezzo (€)</label>
+                  <input type="number" class="form-control" id="course-price" min="0" step="0.01" 
+                         placeholder="0.00">
+                  <small class="text-muted">0 per corso gratuito</small>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="course-private">
+                <label class="form-check-label" for="course-private">
+                  <i class="fas fa-lock me-1"></i>Corso Privato (solo utenti iscritti)
+                </label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="button" class="btn btn-primary" onclick="createCourse()" id="create-course-btn">
+            <i class="fas fa-plus me-1"></i>Crea Corso
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Courses Manager Modal -->
+  <div class="modal fade" id="coursesManagerModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-book me-2"></i>Gestione Corsi
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+              <h6>Corsi Attivi: <span id="total-courses">0</span></h6>
+              <small class="text-muted">Gestisci tutti i corsi della piattaforma</small>
+            </div>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createCourseModal" 
+                    onclick="bootstrap.Modal.getInstance(document.getElementById('coursesManagerModal')).hide()">
+              <i class="fas fa-plus me-1"></i>Nuovo Corso
+            </button>
+          </div>
+
+          <!-- Filtri -->
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <select class="form-select form-select-sm" id="filter-category" onchange="loadCoursesManager()">
+                <option value="">Tutte le categorie</option>
+                <option value="Web Design">Web Design</option>
+                <option value="SEO e Marketing">SEO e Marketing</option>
+                <option value="Sviluppo Web">Sviluppo Web</option>
+                <option value="Business e Marketing">Business e Marketing</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <select class="form-select form-select-sm" id="filter-type" onchange="loadCoursesManager()">
+                <option value="">Tutti i tipi</option>
+                <option value="CORSI">CORSI</option>
+                <option value="TRAINING">TRAINING</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <button class="btn btn-outline-primary btn-sm w-100" onclick="loadCoursesManager()">
+                <i class="fas fa-sync me-1"></i>Aggiorna
+              </button>
+            </div>
+          </div>
+
+          <!-- Lista Corsi -->
+          <div id="courses-manager-list">
+            <div class="text-center p-4">
+              <div class="spinner"></div>
+              <p>Caricamento corsi...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🎓 NUOVO: SISTEMA CORSI COMPLETO -->
+  
+  <!-- Modal Lista Corsi per Utenti -->
+  <div class="modal fade" id="coursesListModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-graduation-cap me-2"></i>Corsi Disponibili
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Filtri Corsi -->
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <select class="form-select" id="courses-filter-category" onchange="loadCoursesForUsers()">
+                <option value="">Tutte le categorie</option>
+                <option value="Cybersecurity">Cybersecurity</option>
+                <option value="Web Development">Web Development</option>
+                <option value="Design">Design</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Data Science">Data Science</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <select class="form-select" id="courses-filter-level" onchange="loadCoursesForUsers()">
+                <option value="">Tutti i livelli</option>
+                <option value="Beginner">Principiante</option>
+                <option value="Intermediate">Intermedio</option>
+                <option value="Advanced">Avanzato</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" id="courses-filter-free" onchange="loadCoursesForUsers()">
+                <label class="form-check-label" for="courses-filter-free">
+                  Solo corsi gratuiti
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lista Corsi -->
+          <div id="courses-user-list">
+            <div class="text-center p-4">
+              <div class="spinner"></div>
+              <p>Caricamento corsi...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Visualizzazione Corso Singolo -->
+  <div class="modal fade" id="courseViewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h5 class="modal-title" id="course-view-title">
+            <i class="fas fa-book me-2"></i>Titolo Corso
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <!-- Info Corso -->
+            <div class="col-lg-4">
+              <div class="course-info-card">
+                <img id="course-view-thumbnail" src="" alt="Course Thumbnail" class="course-thumbnail">
+                <div class="course-meta">
+                  <div class="course-price" id="course-view-price">Gratuito</div>
+                  <div class="course-level" id="course-view-level">Principiante</div>
+                  <div class="course-duration" id="course-view-duration">10 ore</div>
+                  <div class="course-category" id="course-view-category">Web Development</div>
+                </div>
+                <div class="enrollment-section">
+                  <button class="btn btn-primary w-100" id="course-enroll-btn" onclick="enrollInCourse()">
+                    <i class="fas fa-user-plus me-2"></i>Iscriviti al Corso
+                  </button>
+                  <div class="enrolled-students" id="course-students-count">0 studenti iscritti</div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Contenuto Corso -->
+            <div class="col-lg-8">
+              <div class="course-content">
+                <!-- Descrizione -->
+                <div class="course-description">
+                  <h6><i class="fas fa-info-circle me-2"></i>Descrizione</h6>
+                  <p id="course-view-description">Descrizione del corso...</p>
+                </div>
+
+                <!-- Curriculum/Lezioni -->
+                <div class="course-curriculum">
+                  <h6><i class="fas fa-list me-2"></i>Programma del Corso</h6>
+                  <div id="course-lessons-list">
+                    <!-- Le lezioni verranno caricate dinamicamente -->
+                  </div>
+                </div>
+
+                <!-- Prerequisiti -->
+                <div class="course-prerequisites">
+                  <h6><i class="fas fa-check-circle me-2"></i>Cosa imparerai</h6>
+                  <div id="course-objectives">
+                    <!-- Obiettivi del corso -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Visualizzazione Lezione -->
+  <div class="modal fade" id="lessonViewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h5 class="modal-title" id="lesson-view-title">
+            <i class="fas fa-play-circle me-2"></i>Titolo Lezione
+          </h5>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="previousLesson()" id="prev-lesson-btn">
+              <i class="fas fa-chevron-left me-1"></i>Precedente
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="nextLesson()" id="next-lesson-btn">
+              Successiva<i class="fas fa-chevron-right ms-1"></i>
+            </button>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div class="lesson-content">
+            <!-- Progress Bar -->
+            <div class="lesson-progress mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span>Progresso Corso</span>
+                <span id="lesson-progress-text">0%</span>
+              </div>
+              <div class="progress">
+                <div class="progress-bar" id="lesson-progress-bar" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- Contenuto Lezione -->
+            <div class="lesson-body" id="lesson-content">
+              <!-- Contenuto markdown della lezione -->
+            </div>
+
+            <!-- Azioni Lezione -->
+            <div class="lesson-actions mt-4">
+              <div class="d-flex justify-content-between align-items-center">
+                <button class="btn btn-success" onclick="markLessonCompleted()" id="complete-lesson-btn">
+                  <i class="fas fa-check me-2"></i>Segna come Completata
+                </button>
+                <div class="lesson-navigation">
+                  <button class="btn btn-outline-primary" onclick="previousLesson()" id="prev-lesson-btn-bottom">
+                    <i class="fas fa-chevron-left me-1"></i>Precedente
+                  </button>
+                  <button class="btn btn-primary" onclick="nextLesson()" id="next-lesson-btn-bottom">
+                    Successiva<i class="fas fa-chevron-right ms-1"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+
+  <script>
+    // State Management
+    let currentUser = null; 
+    let posts = []; 
+    let currentReviewRating = 0; 
+    let reviews = [];
+    let postComments = {}; // Memorizza commenti per ogni post
+    let notificationPollingInterval = null; // Per polling notifiche
+
+    document.addEventListener('DOMContentLoaded', function(){ checkAuth(); setupEventListeners(); loadTestimonials(); });
+
+    function setupEventListeners(){
+      const postContent = document.getElementById('post-content');
+      if(postContent){
+        postContent.addEventListener('input', function(){ const cc = document.getElementById('char-count'); if(cc){ cc.textContent = this.value.length; } });
+        postContent.addEventListener('keydown', function(e){ if(e.ctrlKey && e.key==='Enter'){ createPost(); } });
+      }
+      
+      const reviewText = document.getElementById('review-text');
+      if(reviewText){
+        reviewText.addEventListener('input', function(){ const cc = document.getElementById('review-char-count'); if(cc){ cc.textContent = this.value.length; } });
+      }
+
+      const formFields = ['register-nome','register-cognome','register-username','register-email','register-corso','register-password'];
+      formFields.forEach(id=>{ const f=document.getElementById(id); if(f){ f.addEventListener('input',()=>validateField(f)); f.addEventListener('blur',()=>validateField(f)); } });
+      
+      // Rating stars
+      document.querySelectorAll('.rating-star').forEach(star => {
+        star.addEventListener('click', function(){
+          const rating = parseInt(this.dataset.rating);
+          setRating(rating);
+        });
+      });
+
+      // Review photo preview
+      const reviewPhoto = document.getElementById('review-photo');
+      if(reviewPhoto){
+        reviewPhoto.addEventListener('change', previewReviewPhoto);
+      }
+
+      // Post form
+      document.getElementById('postForm').addEventListener('submit', handleCreatePost);
+      
+      // Delete account form
+      document.getElementById('deleteAccountForm').addEventListener('submit', handleDeleteAccount);
+      
+      // File input
+      document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+      
+      // Drag and drop
+      const uploadArea = document.getElementById('fileUploadArea');
+      uploadArea.addEventListener('dragover', handleDragOver);
+      uploadArea.addEventListener('dragleave', handleDragLeave);
+      uploadArea.addEventListener('drop', handleFileDrop);
+    }
+
+    // ======== 🔔 NOTIFICHE FUNCTIONS - SISTEMA COMPLETO ========
+    
+    // Carica notifiche dell'utente
+    async function loadNotifications() {
+      if (!currentUser) return;
+      
+      const container = document.getElementById('notifications-list');
+      container.innerHTML = '<div class="text-center p-4"><div class="spinner"></div><p>Caricamento notifiche...</p></div>';
+      
+      try {
+        const res = await fetch('/api/notifications');
+        const data = await res.json();
+        
+        if (res.ok) {
+          console.log('🔔 Notifications loaded:', data.notifications.length);
+          renderNotifications(data.notifications);
+          updateNotificationsBadge(data.unread_count);
+        } else {
+          container.innerHTML = '<div class="text-center p-4 text-danger">Errore caricamento notifiche</div>';
+        }
+      } catch (e) {
+        console.error('Notifications loading error:', e);
+        container.innerHTML = '<div class="text-center p-4 text-danger">Errore di connessione</div>';
+      }
+    }
+    
+    // Renderizza le notifiche nel modal
+    function renderNotifications(notifications) {
+      const container = document.getElementById('notifications-list');
+      
+      if (notifications.length === 0) {
+        container.innerHTML = `
+          <div class="text-center p-5">
+            <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+            <h6 class="text-muted">Nessuna notifica</h6>
+            <p class="text-muted small">Quando ci saranno aggiornamenti li vedrai qui!</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = notifications.map(notification => {
+        const isUnread = !notification.is_read;
+        const iconClass = getNotificationIcon(notification.type);
+        
+        return `
+          <div class="notification-item ${isUnread ? 'unread' : ''}" 
+               data-notification-id="${notification.id}"
+               onclick="markNotificationRead(${notification.id})">
+            <div class="d-flex align-items-start">
+              <div class="notification-icon ${notification.type}">
+                <i class="${iconClass}"></i>
+              </div>
+              <div class="notification-content flex-grow-1">
+                <div class="notification-title">${notification.title}</div>
+                <div class="notification-message">${notification.message}</div>
+                <div class="notification-time">${notification.time_ago}</div>
+                ${notification.sender ? `<small class="text-muted">da ${notification.sender.nome} ${notification.sender.cognome}</small>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    // Ottieni icona per tipo notifica
+    function getNotificationIcon(type) {
+      const icons = {
+        'like': 'fas fa-heart',
+        'comment': 'fas fa-comment',
+        'course_enrollment': 'fas fa-user-plus',
+        'new_course': 'fas fa-book',
+        'lesson_completed': 'fas fa-check-circle',
+        'course_completed': 'fas fa-trophy',
+        'welcome': 'fas fa-star',
+        'new_post': 'fas fa-edit'
+      };
+      return icons[type] || 'fas fa-bell';
+    }
+    
+    // Segna notifica come letta
+    async function markNotificationRead(notificationId) {
+      try {
+        const res = await fetch('/api/notifications/mark-read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notification_ids: [notificationId] })
+        });
+        
+        if (res.ok) {
+          // Rimuovi classe unread
+          const notificationElement = document.querySelector(`[data-notification-id="${notificationId}"]`);
+          if (notificationElement) {
+            notificationElement.classList.remove('unread');
+          }
+          
+          // Aggiorna badge
+          pollNotifications();
+        }
+      } catch (e) {
+        console.error('Error marking notification as read:', e);
+      }
+    }
+    
+    // Segna tutte le notifiche come lette
+    async function markAllNotificationsRead() {
+      try {
+        const res = await fetch('/api/notifications/mark-read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}) // Vuoto = tutte
+        });
+        
+        if (res.ok) {
+          // Rimuovi classe unread da tutte
+          document.querySelectorAll('.notification-item.unread').forEach(el => {
+            el.classList.remove('unread');
+          });
+          
+          // Aggiorna badge
+          updateNotificationsBadge(0);
+          showAlert('✅ Tutte le notifiche segnate come lette', 'success');
+        }
+      } catch (e) {
+        console.error('Error marking all notifications as read:', e);
+        showAlert('❌ Errore aggiornamento notifiche', 'danger');
+      }
+    }
+    
+    // Aggiorna il badge delle notifiche
+    function updateNotificationsBadge(count) {
+      const badge = document.getElementById('notifications-badge');
+      const modalCount = document.getElementById('modal-notifications-count');
+      const bell = document.getElementById('notifications-bell');
+      
+      if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = 'block';
+        badge.classList.add('badge-pulse');
+        
+        modalCount.textContent = count;
+        modalCount.style.display = 'inline';
+        
+        // Animazione campanella
+        if (bell) {
+          bell.classList.add('bell-ring');
+          setTimeout(() => bell.classList.remove('bell-ring'), 1000);
+        }
+        
+        setTimeout(() => badge.classList.remove('badge-pulse'), 500);
+      } else {
+        badge.style.display = 'none';
+        modalCount.style.display = 'none';
+      }
+    }
+    
+    // Polling delle notifiche (ogni 30 secondi)
+    function startNotificationPolling() {
+      if (!currentUser) return;
+      
+      // Polling iniziale
+      pollNotifications();
+      
+      // Polling ogni 30 secondi
+      notificationPollingInterval = setInterval(pollNotifications, 30000);
+      console.log('🔔 Notification polling started');
+    }
+    
+    // Ferma polling notifiche
+    function stopNotificationPolling() {
+      if (notificationPollingInterval) {
+        clearInterval(notificationPollingInterval);
+        notificationPollingInterval = null;
+        console.log('🔔 Notification polling stopped');
+      }
+    }
+    
+    // Controlla notifiche non lette (per polling)
+    async function pollNotifications() {
+      if (!currentUser) return;
+      
+      try {
+        const res = await fetch('/api/notifications/unread-count');
+        const data = await res.json();
+        
+        if (res.ok) {
+          updateNotificationsBadge(data.unread_count);
+        }
+      } catch (e) {
+        // Silenzioso - non mostrare errori di polling
+      }
+    }
+
+    // ======== UTILITY FUNCTIONS ========
+    function formatDate(dateString){ 
+      const date=new Date(dateString); 
+      const now=new Date(); 
+      const s=Math.floor((now-date)/1000); 
+      if(s<60) return 'Ora'; 
+      if(s<3600) return Math.floor(s/60)+'m'; 
+      if(s<86400) return Math.floor(s/3600)+'h'; 
+      if(s<604800) return Math.floor(s/86400)+'g'; 
+      return date.toLocaleDateString('it-IT'); 
+    }
+
+    function showAlert(message,type){ 
+      document.querySelectorAll('.alert').forEach(a=>a.remove()); 
+      const alertDiv=document.createElement('div'); 
+      alertDiv.className=`alert alert-${type} alert-dismissible fade show`; 
+      alertDiv.innerHTML=`<strong>${type==='success'?'✅':'❌'}</strong> ${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`; 
+      document.body.appendChild(alertDiv); 
+      setTimeout(()=>{ 
+        if(alertDiv&&alertDiv.parentNode) alertDiv.remove(); 
+      },5000); 
+    }
+    
+    function closeModal(id){ 
+      const modal=bootstrap.Modal.getInstance(document.getElementById(id)); 
+      if(modal) modal.hide(); 
+    }
+
+    window.addEventListener('scroll', function(){ 
+      document.querySelectorAll('.glass-card').forEach(el=>{ 
+        const top=el.getBoundingClientRect().top; 
+        if(top < window.innerHeight - 150) el.classList.add('fade-in'); 
+      }); 
+    });
+
+    // ======== MARKDOWN FUNCTIONS ========
+    // Markdown setup
+    marked.setOptions({ breaks:true, gfm:true });
+    function renderMarkdown(md){ 
+      const raw = marked.parse(md||''); 
+      return DOMPurify.sanitize(raw, { USE_PROFILES:{ html:true } }); 
+    }
+    function hljsApply(el){ 
+      el.querySelectorAll('pre code').forEach(block=>{ 
+        try{ 
+          hljs.highlightElement(block);
+        }catch(e){} 
+      }); 
+    }
+    
+    function mdWrap(left,right,block){ 
+      const ta=document.getElementById('post-content'); 
+      const s=ta.selectionStart,e=ta.selectionEnd; 
+      const before=ta.value.substring(0,s),sel=ta.value.substring(s,e),after=ta.value.substring(e); 
+      const wrapped = block? `${before}${left}${sel||'\n'}${right}${after}`: `${before}${left}${sel||'testo'}${right}${after}`; 
+      ta.value=wrapped; 
+      ta.focus(); 
+      document.getElementById('char-count').textContent=ta.value.length; 
+    }
+    
+    function insertLink(){ 
+      const url=prompt('Inserisci URL:'); 
+      if(!url) return; 
+      const ta=document.getElementById('post-content'); 
+      const s=ta.selectionStart,e=ta.selectionEnd; 
+      const sel=ta.value.substring(s,e)||'link'; 
+      ta.setRangeText(`[${sel}](${url})`, s, e, 'end'); 
+      document.getElementById('char-count').textContent=ta.value.length; 
+    }
+    
+    function triggerImagePick(){ 
+      document.getElementById('image-input').click(); 
+    }
+
+    document.addEventListener('change', async (e)=>{
+      if(e.target && e.target.id==='image-input'){
+        const file=e.target.files[0]; 
+        if(!file) return;
+        try{
+          const fd=new FormData(); 
+          fd.append('file', file);
+          const res=await fetch('/api/upload',{ method:'POST', body: fd });
+          const data=await res.json(); 
+          if(!res.ok) throw new Error(data.error||'Upload fallito');
+          const ta=document.getElementById('post-content'); 
+          const md=`\n![](${data.url})\n`; 
+          const pos=ta.selectionStart; 
+          ta.setRangeText(md,pos,pos,'end'); 
+          document.getElementById('char-count').textContent=ta.value.length; 
+          showAlert('Immagine caricata','success');
+        }catch(err){ 
+          showAlert(err.message,'danger'); 
+        }
+        e.target.value='';
+      }
+    });
+
+    function previewPost(){ 
+      const md=document.getElementById('post-content').value; 
+      const html=renderMarkdown(md); 
+      const box=document.getElementById('post-preview'); 
+      const body=document.getElementById('post-preview-body'); 
+      body.innerHTML=html; 
+      box.style.display='block'; 
+      hljsApply(body); 
+    }
+
+    // ======== FILE HANDLING FUNCTIONS ========
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (file) {
+        showFilePreview(file);
+      }
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('dragover');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('dragover');
+    }
+
+    function handleFileDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('dragover');
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        document.getElementById('fileInput').files = files;
+        showFilePreview(files[0]);
+      }
+    }
+
+    function showFilePreview(file) {
+      const preview = document.getElementById('filePreview');
+      const fileType = file.type.split('/')[0];
+      
+      console.log('📁 File selezionato:', {
+        name: file.name,
+        type: file.type,
+        size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+        fileType: fileType
+      });
+      
+      if (fileType === 'image') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.innerHTML = `
+            <div class="d-flex align-items-center gap-3 p-3 border rounded">
+              <img src="${e.target.result}" alt="Preview" style="max-width: 150px; max-height: 150px; border-radius: 10px; object-fit: cover;">
+              <div>
+                <p class="mb-1"><strong>🖼️ ${file.name}</strong></p>
+                <p class="text-success small mb-0"><i class="fas fa-check"></i> ${(file.size / 1024 / 1024).toFixed(2)} MB - Pronto per l'upload</p>
+                <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="clearFilePreview()">
+                  <i class="fas fa-trash"></i> Rimuovi
+                </button>
+              </div>
+            </div>
+          `;
+        };
+        reader.readAsDataURL(file);
+      } else if (fileType === 'video') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          // Determina il tipo MIME
+          const ext = file.name.split('.').pop().toLowerCase();
+          let mimeType = file.type || 'video/mp4';
+          
+          preview.innerHTML = `
+            <div class="d-flex align-items-center gap-3 p-3 border rounded" style="background: rgba(102, 126, 234, 0.1);">
+              <div style="position: relative;">
+                <video controls style="max-width: 200px; max-height: 150px; border-radius: 10px; object-fit: cover;">
+                  <source src="${e.target.result}" type="${mimeType}">
+                  <source src="${e.target.result}" type="video/mp4">
+                  Il tuo browser non supporta il tag video.
+                </video>
+                <div style="position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">
+                  ${ext.toUpperCase()}
+                </div>
+              </div>
+              <div>
+                <p class="mb-1"><strong>🎥 ${file.name}</strong></p>
+                <p class="text-info small mb-0"><i class="fas fa-video"></i> Video ${ext.toUpperCase()}</p>
+                <p class="text-success small mb-0"><i class="fas fa-check"></i> ${(file.size / 1024 / 1024).toFixed(2)} MB - Pronto per l'upload</p>
+                <p class="text-muted small mb-0">Supportato: MP4, AVI, MOV, WEBM</p>
+                <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="clearFilePreview()">
+                  <i class="fas fa-trash"></i> Rimuovi
+                </button>
+              </div>
+            </div>
+          `;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        preview.innerHTML = `
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Formato file non supportato:</strong> ${file.type || 'Sconosciuto'}
+            <br><small>Formati supportati: <strong>Immagini</strong> (PNG, JPG, GIF) • <strong>Video</strong> (MP4, AVI, MOV, WEBM)</small>
+          </div>
+        `;
+      }
+      
+      preview.classList.remove('d-none');
+    }
+
+    function clearFilePreview() {
+      document.getElementById('filePreview').classList.add('d-none');
+      document.getElementById('fileInput').value = '';
+    }
+
+    // Post creation with files - DEBUG COMPLETO
+    async function handleCreatePost(e) {
+      e.preventDefault();
+      
+      const content = document.getElementById('post-content').value.trim();
+      const fileInput = document.getElementById('fileInput');
+      
+      if (!content) {
+        showAlert('Il contenuto del post è richiesto', 'warning');
+        return;
+      }
+      
+      console.log('🚀 Creating post...', {
+        contentLength: content.length,
+        hasFile: !!(fileInput.files[0]),
+        fileName: fileInput.files[0]?.name,
+        fileType: fileInput.files[0]?.type,
+        fileSize: fileInput.files[0] ? (fileInput.files[0].size / 1024 / 1024).toFixed(2) + 'MB' : 'N/A'
+      });
+      
+      const formData = new FormData();
+      formData.append('content', content);
+      
+      if (fileInput.files[0]) {
+        const file = fileInput.files[0];
+        console.log('📎 Attaching file:', {
+          name: file.name,
+          type: file.type,
+          size: (file.size / 1024 / 1024).toFixed(2) + 'MB'
+        });
+        formData.append('file', file);
+      }
+      
+      // Log FormData contents
+      console.log('📤 FormData contents:');
+      for (let [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`  ${key}: File(${value.name}, ${value.type}, ${(value.size / 1024 / 1024).toFixed(2)}MB)`);
+        } else {
+          console.log(`  ${key}: ${value}`);
+        }
+      }
+      
+      try {
+        console.log('📤 Sending POST request to /api/posts...');
+        const response = await fetch('/api/posts', {
+          method: 'POST',
+          body: formData
+        });
+        
+        console.log('📥 Response received:', {
+          status: response.status,
+          statusText: response.statusText,
+          contentType: response.headers.get('content-type')
+        });
+        
+        const data = await response.json();
+        console.log('📥 Response data:', data);
+        
+        if (data.message || data.post) {
+          console.log('✅ Post created successfully!', {
+            postId: data.post?.id,
+            hasImage: !!data.post?.image_filename,
+            hasVideo: !!data.post?.video_filename,
+            imageFile: data.post?.image_filename,
+            videoFile: data.post?.video_filename
+          });
+          
+          document.getElementById('postForm').reset();
+          clearFilePreview();
+          document.getElementById('char-count').textContent = '0';
+          document.getElementById('post-preview').style.display = 'none';
+          showAlert('🎉 Post pubblicato con successo!', 'success');
+          
+          // Ricarica i post per vedere il nuovo
+          await loadPosts();
+        } else {
+          console.error('❌ Error in response:', data);
+          showAlert(data.error || 'Errore durante la pubblicazione', 'danger');
+        }
+      } catch (error) {
+        console.error('💥 Create post error:', error);
+        showAlert('Errore di connessione', 'danger');
+      }
+    }
+
+    // ======== AUTHENTICATION FUNCTIONS ========
+    async function checkAuth(){ 
+      try{ 
+        const response=await fetch('/api/me'); 
+        if(response.ok){ 
+          const data=await response.json(); 
+          if(data.authenticated && data.user){ 
+            currentUser=data.user; 
+            showUserSection(); 
+            loadPosts();
+            // 🔔 Avvia polling notifiche per utenti loggati
+            startNotificationPolling();
+          } else { 
+            showGuestSection(); 
+          } 
+        } else { 
+          showGuestSection(); 
+        } 
+      } catch(e){ 
+        showGuestSection(); 
+      } 
+    }
+
+    async function login(){ 
+      const username=document.getElementById('login-username').value.trim(); 
+      const password=document.getElementById('login-password').value; 
+      if(!username||!password){ 
+        showAlert('Inserisci username e password','danger'); 
+        return; 
+      } 
+      try{ 
+        const response=await fetch('/api/login',{ 
+          method:'POST', 
+          headers:{'Content-Type':'application/json'}, 
+          body: JSON.stringify({ username, password }) 
+        }); 
+        const data=await response.json(); 
+        if(response.ok && (data.user || data.message)){ 
+          currentUser=data.user; 
+          showAlert('Login effettuato con successo!','success'); 
+          closeModal('loginModal'); 
+          showUserSection(); 
+          loadPosts();
+          // 🔔 Avvia polling notifiche
+          startNotificationPolling();
+        } else { 
+          showAlert(data.error||'Errore durante il login','danger'); 
+        } 
+      } catch(e){ 
+        showAlert('Errore di connessione','danger'); 
+      } 
+    }
+
+    async function register(){ 
+      if(!validateForm()){ 
+        showAlert('Correggi gli errori nel form prima di continuare','danger'); 
+        return; 
+      } 
+      
+      const formData={ 
+        nome:document.getElementById('register-nome').value.trim(), 
+        cognome:document.getElementById('register-cognome').value.trim(), 
+        username:document.getElementById('register-username').value.trim(), 
+        email:document.getElementById('register-email').value.trim(), 
+        corso:document.getElementById('register-corso').value, 
+        password:document.getElementById('register-password').value, 
+        bio:document.getElementById('register-bio').value.trim() 
+      };
+      
+      const btn=document.getElementById('register-btn'); 
+      const orig=btn.innerHTML; 
+      btn.disabled=true; 
+      btn.innerHTML='<i class="fas fa-spinner fa-spin me-2"></i>Registrazione...';
+      
+      try{ 
+        const res=await fetch('/api/register',{ 
+          method:'POST', 
+          headers:{'Content-Type':'application/json'}, 
+          body: JSON.stringify(formData) 
+        }); 
+        const data=await res.json(); 
+        
+        if(res.ok && (data.user || data.message)){ 
+          currentUser=data.user; 
+          showAlert('🎉 Benvenuto in CourseConnect! La tua storia di successo inizia ora!','success'); 
+          closeModal('registerModal'); 
+          showUserSection(); 
+          loadPosts(); 
+          loadActiveUsers(); 
+          startNotificationPolling(); 
+        } else { 
+          showAlert(data.error||'Errore durante la registrazione','danger'); 
+        } 
+      } catch(err){ 
+        showAlert('Errore di connessione. Riprova.','danger'); 
+      } finally { 
+        btn.disabled=false; 
+        btn.innerHTML=orig; 
+      }
+    }
+
+    async function logout(){ 
+      try{ 
+        await fetch('/api/logout',{ method:'POST' }); 
+        currentUser=null; 
+        showAlert('Logout effettuato','success'); 
+        showGuestSection();
+        // 🔔 Ferma polling notifiche
+        stopNotificationPolling();
+      } catch(e){ 
+        showAlert('Errore durante il logout','danger'); 
+      } 
+    }
+
+    // ======== UI FUNCTIONS ========
+    function showGuestSection(){ 
+      document.getElementById('guest-section').style.display='block'; 
+      document.getElementById('user-section').style.display='none'; 
+      document.getElementById('nav-login').style.display='block'; 
+      document.getElementById('nav-register').style.display='block'; 
+      document.getElementById('nav-user').style.display='none'; 
+      document.getElementById('nav-review').style.display='none'; 
+      document.getElementById('nav-notifications').style.display='none';
+    }
+    
+    function showUserSection(){ 
+      document.getElementById('guest-section').style.display='none'; 
+      document.getElementById('user-section').style.display='block'; 
+      document.getElementById('nav-login').style.display='none'; 
+      document.getElementById('nav-register').style.display='none'; 
+      document.getElementById('nav-user').style.display='block'; 
+      document.getElementById('nav-review').style.display='block'; 
+      document.getElementById('nav-notifications').style.display='block';
+      
+      if(currentUser){ 
+        document.getElementById('user-name').textContent=currentUser.nome || currentUser.username; 
+        
+        // Mostra pannello admin se è admin
+        if(currentUser.is_admin) {
+          document.getElementById('admin-panel').style.display='block';
+        }
+        
+        // 🔔 Aggiorna badge notifiche
+        if(currentUser.unread_notifications > 0) {
+          updateNotificationsBadge(currentUser.unread_notifications);
+        }
+      } 
+      
+      loadActiveUsers(); 
+    }
+
+    function updateUIForLoggedInUser() {
+      showUserSection();
+    }
+
+    function updateUIForLoggedOutUser() {
+      showGuestSection();
+    }
+
+    // ======== POSTS FUNCTIONS ========
+    async function loadPosts(){ 
+      const container=document.getElementById('posts-container'); 
+      container.innerHTML='<div class="loading"><div class="spinner"></div><p>Caricamento post...</p></div>'; 
+      
+      try{ 
+        console.log('📥 Loading posts from /api/posts...');
+        const res=await fetch('/api/posts'); 
+        const data=await res.json(); 
+        
+        if(res.ok){ 
+          posts=data.posts; 
+          console.log('📥 Posts loaded:', posts.length, 'posts');
+          
+          // Debug per video
+          const postsWithVideo = posts.filter(p => p.video_filename);
+          const postsWithImage = posts.filter(p => p.image_filename);
+          console.log('🎥 Posts with video:', postsWithVideo.length);
+          console.log('🖼️ Posts with image:', postsWithImage.length);
+          
+          if (postsWithVideo.length > 0) {
+            console.log('🔍 Video posts details:', postsWithVideo.map(p => ({
+              id: p.id,
+              video_filename: p.video_filename,
+              author: p.author.username
+            })));
+          }
+          
+          renderPosts(); 
+        } else { 
+          console.error('❌ Error loading posts:', data);
+          container.innerHTML=`<div class="alert alert-danger">Errore: ${data.error}</div>`; 
+        } 
+      } catch(e){ 
+        console.error('💥 Posts loading failed:', e);
+        container.innerHTML='<div class="alert alert-danger">Errore di connessione</div>'; 
+      } 
+    }
+
+    function renderPosts(){ 
+      const container=document.getElementById('posts-container'); 
+      if(posts.length===0){ 
+        container.innerHTML = `<div class="glass-card p-4 text-center"><i class="fas fa-comments fa-3x mb-3" style="color:var(--text-muted)"></i><h5>Inizia la Conversazione!</h5><p class="text-muted">Condividi il tuo primo post e ispira la community!</p></div>`; 
+        return; 
+      } 
+      
+      container.innerHTML = posts.map(post=>{ 
+        const html=renderMarkdown(post.content); 
+        const isAuthor = currentUser && (post.author.id === currentUser.id); 
+        const deleteBtn = isAuthor ? `<button class="action-btn text-danger" onclick="deletePost(${post.id})" title="Elimina post"><i class="fas fa-trash me-1"></i>Elimina</button>` : ''; 
+        const commentsCount = post.comments_count > 0 ? `(${post.comments_count})` : '';
+        
+        // Media content (immagini e video) - FIX COMPLETO!
+        let mediaHTML = '';
+        
+        console.log('🔍 Post media check:', {
+          id: post.id,
+          image_filename: post.image_filename,
+          video_filename: post.video_filename
+        });
+        
+        // Gestione immagini
+        if (post.image_filename) {
+          const imageUrl = `/uploads/${post.image_filename}`;
+          console.log('🖼️ Rendering image:', imageUrl);
+          mediaHTML += `
+            <div class="post-media">
+              <img src="${imageUrl}" alt="Post image" class="img-fluid" 
+                   style="max-width:70%; width:70%; height:auto; border-radius:12px; margin:1rem 0; box-shadow:0 4px 12px rgba(0,0,0,.3);" 
+                   onload="console.log('✅ Image loaded: ${imageUrl}')"
+                   onerror="console.log('❌ Image failed: ${imageUrl}')">
+            </div>
+          `;
+        }
+        
+        // Gestione video - SUPPORTO COMPLETO
+        if (post.video_filename) {
+          const videoUrl = `/uploads/${post.video_filename}`;
+          console.log('🎥 Rendering video:', videoUrl);
+          
+          // Determina il tipo MIME dal filename
+          const ext = post.video_filename.split('.').pop().toLowerCase();
+          let mimeType = 'video/mp4'; // default
+          
+          switch(ext) {
+            case 'mp4': mimeType = 'video/mp4'; break;
+            case 'webm': mimeType = 'video/webm'; break;
+            case 'avi': mimeType = 'video/x-msvideo'; break;
+            case 'mov': mimeType = 'video/quicktime'; break;
+            case 'wmv': mimeType = 'video/x-ms-wmv'; break;
+            case 'flv': mimeType = 'video/x-flv'; break;
+          }
+          
+          mediaHTML += `
+            <div class="post-media">
+              <video controls preload="metadata" class="img-fluid" 
+                     style="max-width:70%; width:70%; height:auto; border-radius:12px; margin:1rem 0; box-shadow:0 4px 12px rgba(0,0,0,.3); background:#000;"
+                     onloadstart="console.log('🎥 Video loading: ${videoUrl}')"
+                     onloadeddata="console.log('✅ Video loaded: ${videoUrl}')"
+                     onerror="console.log('❌ Video failed: ${videoUrl}')">
+                <source src="${videoUrl}" type="${mimeType}">
+                <source src="${videoUrl}" type="video/mp4">
+                <source src="${videoUrl}" type="video/webm">
+                <p style="color:#fff; text-align:center; padding:20px;">
+                  Il tuo browser non supporta il tag video. 
+                  <a href="${videoUrl}" style="color:#667eea;">Scarica il video</a>
+                </p>
+              </video>
+              <div class="video-info text-muted small mt-2">
+                🎥 Video • ${ext.toUpperCase()} • <a href="${videoUrl}" target="_blank">Apri in nuova scheda</a>
+              </div>
+            </div>
+          `;
+        }
+        
+        return `
+          <div class="post-card glass-card slide-up" id="post-${post.id}">
+            <div class="d-flex align-items-start">
+              <div class="user-avatar" style="background:${post.author.avatar_color}">${post.author.initials}</div>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div><h6 class="mb-0">${post.author.nome} ${post.author.cognome}</h6><small class="text-muted">@${post.author.username} • ${post.author.corso}</small></div>
+                  <small class="text-muted">${formatDate(post.created_at)}</small>
+                </div>
+                <div class="post-content">${html}${mediaHTML}</div>
+                <div class="post-actions">
+                  <button class="action-btn ${post.is_liked ? 'liked' : ''}" onclick="toggleLike(${post.id})"><i class="fas fa-heart me-1"></i><span id="likes-${post.id}">${post.likes_count}</span></button>
+                  <button class="action-btn comments-toggle" onclick="toggleComments(${post.id})"><i class="fas fa-comment me-1"></i>Commenti<span class="comments-counter">${commentsCount}</span></button>
+                  <button class="action-btn" onclick="sharePost(${post.id})"><i class="fas fa-share me-1"></i>Condividi</button>
+                  ${deleteBtn}
+                </div>
+                
+                <!-- SEZIONE COMMENTI -->
+                <div class="comments-section" id="comments-${post.id}" style="display:none;">
+                  <div id="comments-list-${post.id}">
+                    <!-- I commenti verranno caricati dinamicamente -->
+                  </div>
+                  
+                  <!-- FORM NUOVO COMMENTO -->
+                  ${currentUser ? `
+                    <div class="comment-form">
+                      <div class="d-flex gap-2">
+                        <div class="comment-avatar" style="background:${currentUser.avatar_color}">${currentUser.initials}</div>
+                        <div class="flex-grow-1">
+                          <textarea 
+                            class="comment-input w-100" 
+                            id="comment-input-${post.id}" 
+                            placeholder="Scrivi un commento..." 
+                            maxlength="1000"
+                            rows="2"></textarea>
+                          <div class="d-flex justify-content-between align-items-center mt-2">
+                            <small class="text-muted">Max 1000 caratteri</small>
+                            <button 
+                              class="comment-btn" 
+                              id="comment-btn-${post.id}"
+                              onclick="addComment(${post.id})">
+                              <i class="fas fa-paper-plane me-1"></i>Invia
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ` : `
+                    <div class="text-center p-3">
+                      <small class="text-muted">
+                        <i class="fas fa-lock me-1"></i>
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal" class="text-decoration-none">Accedi</a> 
+                        per commentare
+                      </small>
+                    </div>
+                  `}
+                </div>
+              </div>
+            </div>
+          </div>`; 
+      }).join(''); 
+      
+      container.querySelectorAll('.post-card .post-content').forEach(el=>hljsApply(el)); 
+    }
+
+    async function createPost(){ 
+      const content=document.getElementById('post-content').value.trim(); 
+      if(!content){ 
+        showAlert('Scrivi qualcosa prima di pubblicare!','danger'); 
+        return; 
+      } 
+      if(content.length>4000){ 
+        showAlert('Il post è troppo lungo (max 4000 caratteri)','danger'); 
+        return; 
+      } 
+      try{ 
+        const response=await fetch('/api/posts',{ 
+          method:'POST', 
+          headers:{'Content-Type':'application/json'}, 
+          body: JSON.stringify({ content }) 
+        }); 
+        const data=await response.json(); 
+        if(response.ok){ 
+          document.getElementById('post-content').value=''; 
+          document.getElementById('char-count').textContent='0'; 
+          document.getElementById('post-preview').style.display='none'; 
+          showAlert('Post pubblicato!','success'); 
+          loadPosts(); 
+        } else { 
+          showAlert(data.error||'Errore durante la pubblicazione','danger'); 
+        } 
+      } catch(e){ 
+        showAlert('Errore di connessione','danger'); 
+      } 
+    }
+
+    async function toggleLike(postId){ 
+      try{ 
+        const res=await fetch(`/api/posts/${postId}/like`,{ method:'POST' }); 
+        const data=await res.json(); 
+        if(res.ok){ 
+          const likesSpan=document.getElementById(`likes-${postId}`); 
+          const likeBtn=likesSpan.parentElement; 
+          likesSpan.textContent=data.likes_count; 
+          if(data.is_liked) likeBtn.classList.add('liked'); 
+          else likeBtn.classList.remove('liked'); 
+        } else { 
+          showAlert(data.error||'Errore','danger'); 
+        } 
+      } catch(e){ 
+        showAlert('Errore di connessione','danger'); 
+      } 
+    }
+
+    async function deletePost(postId){
+      if(!confirm('⚠️ Sei sicuro di voler eliminare questo post?\n\nQuesta azione non può essere annullata.')){
+        return;
+      }
+      
+      try{
+        const res = await fetch(`/api/posts/${postId}`, { method: 'DELETE' });
+        const data = await res.json();
+        
+        if(res.ok){
+          // Rimuovi il post dal DOM con animazione
+          const postElement = document.getElementById(`post-${postId}`);
+          if(postElement){
+            postElement.style.transition = 'all 0.3s ease';
+            postElement.style.transform = 'translateX(-100%)';
+            postElement.style.opacity = '0';
+            
+            setTimeout(() => {
+              postElement.remove();
+              // Aggiorna l'array posts
+              posts = posts.filter(p => p.id !== postId);
+              
+              // Se non ci sono più post, mostra il messaggio
+              if(posts.length === 0){
+                const container = document.getElementById('posts-container');
+                container.innerHTML = `<div class="glass-card p-4 text-center"><i class="fas fa-comments fa-3x mb-3" style="color:var(--text-muted)"></i><h5>Inizia la Conversazione!</h5><p class="text-muted">Condividi il tuo primo post e ispira la community!</p></div>`;
+              }
+            }, 300);
+          }
+          
+          showAlert('🗑️ Post eliminato con successo', 'success');
+        } else {
+          showAlert(data.error || 'Errore durante l\'eliminazione', 'danger');
+        }
+      } catch(e){
+        showAlert('Errore di connessione', 'danger');
+      }
+    }
+
+    async function sharePost(postId){ 
+      const url=`${location.origin}${location.pathname}#post-${postId}`; 
+      try{ 
+        if(navigator.share){ 
+          await navigator.share({ title:'CourseConnect', text:"Dai un'occhiata al mio post", url }); 
+        } else { 
+          await navigator.clipboard.writeText(url); 
+          showAlert('Link copiato negli appunti','success'); 
+        } 
+      } catch(e){} 
+    }
+
+    // ======== COMMENTS FUNCTIONS ========
+    async function toggleComments(postId) {
+      const commentsSection = document.getElementById(`comments-${postId}`);
+      
+      if (commentsSection.style.display === 'none' || !commentsSection.style.display) {
+        // Mostra commenti
+        commentsSection.style.display = 'block';
+        await loadComments(postId);
+      } else {
+        // Nascondi commenti
+        commentsSection.style.display = 'none';
+      }
+    }
+
+    async function loadComments(postId) {
+      const container = document.getElementById(`comments-list-${postId}`);
+      if (!container) return;
+      
+      container.innerHTML = '<div class="text-muted text-center p-2"><i class="fas fa-spinner fa-spin me-2"></i>Caricamento commenti...</div>';
+      
+      try {
+        const res = await fetch(`/api/posts/${postId}/comments`);
+        const data = await res.json();
+        
+        if (res.ok && data.comments) {
+          postComments[postId] = data.comments;
+          renderComments(postId, data.comments);
+        } else {
+          container.innerHTML = '<div class="text-muted text-center p-2">Errore caricamento commenti</div>';
+        }
+      } catch (e) {
+        container.innerHTML = '<div class="text-muted text-center p-2">Errore di connessione</div>';
+      }
+    }
+
+    function renderComments(postId, comments) {
+      const container = document.getElementById(`comments-list-${postId}`);
+      if (!container) return;
+      
+      if (comments.length === 0) {
+        container.innerHTML = '<div class="text-muted text-center p-2"><i class="fas fa-comment me-2"></i>Nessun commento ancora. Sii il primo!</div>';
+        return;
+      }
+      
+      container.innerHTML = comments.map(comment => {
+        const isAuthor = currentUser && currentUser.id && (comment.author.id === currentUser.id);
+        const deleteBtn = isAuthor ? 
+          `<button class="comment-delete" onclick="deleteComment(${comment.id}, ${postId})" title="Elimina commento">
+             <i class="fas fa-trash"></i>
+           </button>` : '';
+        
+        return `
+          <div class="comment-item" id="comment-${comment.id}">
+            <div class="d-flex">
+              <div class="comment-avatar" style="background:${comment.author.avatar_color}">${comment.author.initials}</div>
+              <div class="flex-grow-1">
+                <div class="comment-content">${comment.content}</div>
+                <div class="comment-meta">
+                  <span class="comment-author">${comment.author.nome} ${comment.author.cognome}</span>
+                  <span>•</span>
+                  <span>${formatDate(comment.created_at)}</span>
+                  ${deleteBtn}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function addComment(postId) {
+      const textarea = document.getElementById(`comment-input-${postId}`);
+      const content = textarea.value.trim();
+      
+      if (!content) {
+        showAlert('Scrivi un commento prima di inviare', 'danger');
+        return;
+      }
+      
+      if (content.length > 1000) {
+        showAlert('Commento troppo lungo (max 1000 caratteri)', 'danger');
+        return;
+      }
+      
+      const btn = document.getElementById(`comment-btn-${postId}`);
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Invio...';
+      
+      try {
+        const res = await fetch(`/api/posts/${postId}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          textarea.value = '';
+          await loadComments(postId); // Ricarica commenti
+          showAlert('💬 Commento aggiunto!', 'success');
+          
+          // Aggiorna il contatore commenti nel post
+          updateCommentsCount(postId);
+        } else {
+          showAlert(data.error || 'Errore durante l\'invio', 'danger');
+        }
+      } catch (e) {
+        showAlert('Errore di connessione', 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+
+    async function deleteComment(commentId, postId) {
+      if (!confirm('Sei sicuro di voler eliminare questo commento?')) {
+        return;
+      }
+      
+      try {
+        const res = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' });
+        const data = await res.json();
+        
+        if (res.ok) {
+          // Rimuovi commento dal DOM
+          const commentElement = document.getElementById(`comment-${commentId}`);
+          if (commentElement) {
+            commentElement.style.transition = 'all 0.3s ease';
+            commentElement.style.opacity = '0';
+            commentElement.style.transform = 'translateX(-20px)';
+            
+            setTimeout(() => {
+              commentElement.remove();
+              // Se non ci sono più commenti, mostra messaggio
+              const container = document.getElementById(`comments-list-${postId}`);
+              if (container && container.children.length === 0) {
+                container.innerHTML = '<div class="text-muted text-center p-2"><i class="fas fa-comment me-2"></i>Nessun commento ancora. Sii il primo!</div>';
+              }
+            }, 300);
+          }
+          
+          // Aggiorna contatore
+          updateCommentsCount(postId);
+          showAlert('🗑️ Commento eliminato', 'success');
+        } else {
+          showAlert(data.error || 'Errore durante l\'eliminazione', 'danger');
+        }
+      } catch (e) {
+        showAlert('Errore di connessione', 'danger');
+      }
+    }
+
+    function updateCommentsCount(postId) {
+      // Ricarica il post specifico per aggiornare il contatore
+      fetch(`/api/posts`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.posts) {
+            const post = data.posts.find(p => p.id === postId);
+            if (post) {
+              const counter = document.querySelector(`[onclick="toggleComments(${postId})"] .comments-counter`);
+              if (counter) {
+                counter.textContent = post.comments_count > 0 ? `(${post.comments_count})` : '';
+              }
+            }
+          }
+        })
+        .catch(e => console.log('Errore aggiornamento contatore:', e));
+    }
+
+    // ======== USERS & SIDEBAR ========
+    async function loadActiveUsers(){ 
+      const box=document.getElementById('active-users'); 
+      if(!box) return; 
+      box.innerHTML='<div class="text-muted">Caricamento...</div>'; 
+      try{ 
+        const res=await fetch('/api/users?limit=10'); 
+        const data=await res.json(); 
+        if(!res.ok) throw new Error(data.error||'Errore'); 
+        if(!data.users||data.users.length===0){ 
+          box.innerHTML='<small class="text-muted">Nessun utente ancora.</small>'; 
+          return; 
+        } 
+        box.innerHTML = data.users.map(u=>`<div class="d-flex align-items-center mb-3"><div class="user-avatar" style="background:${u.avatar_color}; width:40px; height:40px;">${u.initials}</div><div><div class="fw-bold">${u.nome} ${u.cognome}</div><small class="text-muted">@${u.username} • ${u.corso}</small></div></div>`).join(''); 
+      } catch(e){ 
+        box.innerHTML=`<div class="text-danger"><small>${e.message}</small></div>`; 
+      } 
+    }
+
+    // ======== VALIDATION FUNCTIONS ========
+    function validateField(field){ 
+      const value=field.value.trim(); 
+      let ok=true; 
+      field.classList.remove('is-valid','is-invalid'); 
+      switch(field.id){ 
+        case 'register-nome': 
+        case 'register-cognome': 
+        case 'register-username': 
+          ok=value.length>=2; 
+          break; 
+        case 'register-email': 
+          ok=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); 
+          break; 
+        case 'register-corso': 
+          ok=value!==''; 
+          break; 
+        case 'register-password': 
+          ok=value.length>=6; 
+          break; 
+      } 
+      field.classList.add(ok?'is-valid':'is-invalid'); 
+      return ok; 
+    }
+
+    function validateForm(){ 
+      const ids=['register-nome','register-cognome','register-username','register-email','register-corso','register-password']; 
+      let ok=true; 
+      ids.forEach(id=>{ 
+        const f=document.getElementById(id); 
+        if(!validateField(f)) ok=false; 
+      }); 
+      return ok; 
+    }
+
+    // ======== TESTIMONIALS & REVIEWS ========
+    async function loadTestimonials(){
+      const container = document.getElementById('testimonials-container');
+      if(!container) return;
+      
+      try{
+        // Carica recensioni utenti
+        const res = await fetch('/api/reviews');
+        if(res.ok){
+          const data = await res.json();
+          reviews = data.reviews || [];
+        }
+        
+        // Testimonianze statiche + recensioni utenti
+        const staticTestimonials = [
+          {
+            name: "Elena Moretti",
+            course: "Frontend Developer • Milano", 
+            text: "CourseConnect mi ha cambiato la vita! Ho trovato il lavoro dei miei sogni grazie ai contatti fatti qui. La community è incredibilmente supportiva e sempre pronta ad aiutare.",
+            photo: "https://randomuser.me/api/portraits/women/1.jpg",
+            rating: 5,
+            isStatic: true
+          },
+          {
+            name: "Marco Bianchi", 
+            course: "UX Designer • Roma",
+            text: "Finalmente un posto dove i corsisti possono davvero connettersi! Ho imparato più dai progetti condivisi qui che in mesi di studio solitario. Consigliatissimo!",
+            photo: "https://randomuser.me/api/portraits/men/1.jpg", 
+            rating: 5,
+            isStatic: true
+          },
+          {
+            name: "Giulia Rossi",
+            course: "Digital Marketing Specialist • Napoli",
+            text: "La qualità delle discussioni qui è altissima. Ho ricevuto feedback prezioso sui miei progetti e ho stretto amicizie che durano ancora oggi. Un'esperienza trasformante!",
+            photo: "https://randomuser.me/api/portraits/women/2.jpg",
+            rating: 5, 
+            isStatic: true
+          }
+        ];
+        
+        const allTestimonials = [...staticTestimonials, ...reviews];
+        renderTestimonials(allTestimonials);
+        
+      } catch(e){
+        // Fallback a testimonianze statiche
+        const staticTestimonials = [
+          {
+            name: "Elena Moretti",
+            course: "Frontend Developer • Milano", 
+            text: "CourseConnect mi ha cambiato la vita! Ho trovato il lavoro dei miei sogni grazie ai contatti fatti qui. La community è incredibilmente supportiva e sempre pronta ad aiutare.",
+            photo: "https://randomuser.me/api/portraits/women/1.jpg",
+            rating: 5
+          },
+          {
+            name: "Marco Bianchi", 
+            course: "UX Designer • Roma",
+            text: "Finalmente un posto dove i corsisti possono davvero connettersi! Ho imparato più dai progetti condivisi qui che in mesi di studio solitario. Consigliatissimo!",
+            photo: "https://randomuser.me/api/portraits/men/1.jpg", 
+            rating: 5
+          },
+          {
+            name: "Giulia Rossi",
+            course: "Digital Marketing Specialist • Napoli",
+            text: "La qualità delle discussioni qui è altissima. Ho ricevuto feedback prezioso sui miei progetti e ho stretto amicizie che durano ancora oggi. Un'esperienza trasformante!",
+            photo: "https://randomuser.me/api/portraits/women/2.jpg",
+            rating: 5
+          }
+        ];
+        renderTestimonials(staticTestimonials);
+      }
+    }
+
+    function renderTestimonials(testimonials){
+      const container = document.getElementById('testimonials-container');
+      if(!container) return;
+      
+      if(testimonials.length === 0){
+        container.innerHTML = '<div class="text-center"><p class="text-muted">Nessuna recensione ancora. Sii il primo!</p></div>';
+        return;
+      }
+      
+      let html = '<div class="row">';
+      testimonials.forEach(t => {
+        const stars = '<i class="fas fa-star"></i>'.repeat(t.rating);
+        html += `
+          <div class="col-lg-4 mb-4">
+            <div class="testimonial-card fade-in">
+              <img src="${t.photo}" alt="${t.name}" class="testimonial-avatar" onerror="this.src='https://randomuser.me/api/portraits/men/1.jpg'">
+              <div class="testimonial-stars">${stars}</div>
+              <p class="testimonial-text">"${t.text}"</p>
+              <div class="testimonial-author">
+                <div class="testimonial-name">${t.name}</div>
+                <div class="testimonial-course">${t.course}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function setRating(rating){
+      currentReviewRating = rating;
+      document.getElementById('review-rating-value').value = rating;
+      
+      document.querySelectorAll('.rating-star').forEach((star, index) => {
+        if(index < rating){
+          star.classList.add('active');
+        } else {
+          star.classList.remove('active');
+        }
+      });
+    }
+
+    function previewReviewPhoto(){
+      const file = this.files[0];
+      if(!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e){
+        const preview = document.getElementById('review-avatar-preview');
+        preview.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Preview">`;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function submitReview(){
+      if(!currentUser){
+        showAlert('Devi essere loggato per lasciare una recensione', 'danger');
+        return;
+      }
+      
+      const text = document.getElementById('review-text').value.trim();
+      const location = document.getElementById('review-location').value.trim();
+      const photo = document.getElementById('review-photo').files[0];
+      
+      if(!text || !currentReviewRating || !photo){
+        showAlert('Compila tutti i campi obbligatori', 'danger');
+        return;
+      }
+      
+      const btn = document.getElementById('review-submit-btn');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Pubblicando...';
+      
+      try{
+        // Upload foto
+        const formData = new FormData();
+        formData.append('file', photo);
+        
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if(!uploadRes.ok) throw new Error('Upload foto fallito');
+        const uploadData = await uploadRes.json();
+        
+        // Invia recensione
+        const reviewData = {
+          text: text,
+          rating: currentReviewRating,
+          location: location,
+          photo_url: uploadData.url
+        };
+        
+        const reviewRes = await fetch('/api/reviews', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(reviewData)
+        });
+        
+        if(!reviewRes.ok) throw new Error('Invio recensione fallito');
+        
+        showAlert('🎉 Recensione pubblicata con successo!', 'success');
+        closeModal('reviewModal');
+        
+        // Reset form
+        document.getElementById('review-form').reset();
+        document.getElementById('review-avatar-preview').innerHTML = '';
+        setRating(0);
+        document.getElementById('review-char-count').textContent = '0';
+        
+        // Ricarica testimonianze
+        loadTestimonials();
+        
+      } catch(err){
+        showAlert(err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+
+    // ======== ACCOUNT SETTINGS ========
+    function showSettings() {
+      if (!currentUser) return;
+      
+      document.getElementById('currentUserInfo').innerHTML = `
+        <div class="row">
+          <div class="col-md-6">
+            <p><strong>Username:</strong> ${currentUser.username}</p>
+            <p><strong>Email:</strong> ${currentUser.email || currentUser.user?.email || 'Non disponibile'}</p>
+          </div>
+          <div class="col-md-6">
+            <p><strong>Nome:</strong> ${currentUser.nome || currentUser.user?.nome || 'Non specificato'}</p>
+            <p><strong>Corso:</strong> ${currentUser.corso || currentUser.user?.corso || 'Non specificato'}</p>
+          </div>
+        </div>
+      `;
+      
+      new bootstrap.Modal(document.getElementById('settingsModal')).show();
+    }
+
+    function showDeleteAccountModal() {
+      bootstrap.Modal.getInstance(document.getElementById('settingsModal')).hide();
+      setTimeout(() => {
+        new bootstrap.Modal(document.getElementById('deleteAccountModal')).show();
+      }, 300);
+    }
+
+    async function handleDeleteAccount(e) {
+      e.preventDefault();
+      
+      const reason = document.getElementById('deletionReason').value;
+      const feedback = document.getElementById('deletionFeedback').value;
+      const confirmed = document.getElementById('confirmDeletion').checked;
+      
+      if (!confirmed) {
+        showAlert('Devi confermare l\'eliminazione dell\'account', 'warning');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/delete-account', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason, feedback })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success || data.message) {
+          bootstrap.Modal.getInstance(document.getElementById('deleteAccountModal')).hide();
+          updateUIForLoggedOutUser();
+          showAlert('Account eliminato con successo. Grazie per il feedback!', 'info');
+          loadPosts();
+          loadActiveUsers();
+        } else {
+          showAlert(data.error || 'Errore durante l\'eliminazione dell\'account', 'danger');
+        }
+      } catch (error) {
+        console.error('Delete account error:', error);
+        showAlert('Errore di connessione', 'danger');
+      }
+    }
+
+    // ======== ADMIN COURSES FUNCTIONS ========
+    function showCoursesManager() {
+      new bootstrap.Modal(document.getElementById('coursesManagerModal')).show();
+      loadCoursesManager();
+    }
+
+    async function loadCoursesManager() {
+      const container = document.getElementById('courses-manager-list');
+      container.innerHTML = '<div class="text-center p-4"><div class="spinner"></div><p>Caricamento corsi...</p></div>';
+      
+      try {
+        const category = document.getElementById('filter-category').value;
+        const type = document.getElementById('filter-type').value;
+        
+        let url = '/api/courses?';
+        if (category) url += `category=${encodeURIComponent(category)}&`;
+        if (type) url += `type=${encodeURIComponent(type)}&`;
+        
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        if (res.ok) {
+          document.getElementById('total-courses').textContent = data.total;
+          renderCoursesManager(data.courses);
+        } else {
+          container.innerHTML = `<div class="alert alert-danger">Errore: ${data.error}</div>`;
+        }
+      } catch (e) {
+        container.innerHTML = '<div class="alert alert-danger">Errore di connessione</div>';
+      }
+    }
+
+    function renderCoursesManager(courses) {
+      const container = document.getElementById('courses-manager-list');
+      
+      if (courses.length === 0) {
+        container.innerHTML = '<div class="text-center p-4"><p class="text-muted">Nessun corso trovato</p></div>';
+        return;
+      }
+      
+      container.innerHTML = courses.map(course => `
+        <div class="card mb-3" style="background: rgba(45,45,45,.8); border: 1px solid var(--border-color);">
+          <div class="row g-0">
+            <div class="col-md-3">
+              <img src="${course.thumbnail_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400'}" 
+                   class="img-fluid rounded-start h-100" style="object-fit: cover;" alt="${course.title}">
+            </div>
+            <div class="col-md-9">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h6 class="card-title">${course.title}</h6>
+                    <p class="card-text small text-muted">${course.description.substring(0, 150)}...</p>
+                    <div class="d-flex gap-3 small">
+                      <span><i class="fas fa-tag me-1"></i>${course.category}</span>
+                      <span><i class="fas fa-layer-group me-1"></i>${course.course_type}</span>
+                      <span><i class="fas fa-signal me-1"></i>${course.skill_level}</span>
+                      <span><i class="fas fa-clock me-1"></i>${course.duration_hours}h</span>
+                      ${course.is_private ? '<span class="text-warning"><i class="fas fa-lock me-1"></i>Privato</span>' : ''}
+                    </div>
+                  </div>
+                  <div class="text-end">
+                    <div class="btn-group-vertical btn-group-sm">
+                      <button class="btn btn-outline-primary btn-sm" onclick="editCourse(${course.id})" title="Modifica">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-outline-danger btn-sm" onclick="deleteCourse(${course.id})" title="Elimina">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                    <div class="mt-2 small text-muted">
+                      <div>📚 ${course.total_lessons} lezioni</div>
+                      <div>💰 ${course.price > 0 ? course.price + '€' : 'Gratuito'}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function createCourse() {
+      if (!currentUser || !currentUser.is_admin) {
+        showAlert('Solo gli amministratori possono creare corsi', 'danger');
+        return;
+      }
+
+      // Valida form
+      const form = document.getElementById('createCourseForm');
+      if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+      }
+
+      const courseData = {
+        title: document.getElementById('course-title').value.trim(),
+        description: document.getElementById('course-description').value.trim(),
+        category: document.getElementById('course-category').value,
+        course_type: document.getElementById('course-type').value,
+        skill_level: document.getElementById('course-level').value,
+        duration_hours: parseInt(document.getElementById('course-duration').value) || 0,
+        thumbnail_url: document.getElementById('course-thumbnail').value.trim(),
+        price: parseFloat(document.getElementById('course-price').value) || 0,
+        is_private: document.getElementById('course-private').checked
+      };
+
+      const btn = document.getElementById('create-course-btn');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creando...';
+
+      try {
+        const res = await fetch('/api/courses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(courseData)
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          showAlert('🎉 Corso creato con successo!', 'success');
+          bootstrap.Modal.getInstance(document.getElementById('createCourseModal')).hide();
+          form.reset();
+          form.classList.remove('was-validated');
+          document.getElementById('desc-count').textContent = '0';
+          
+          // Ricarica manager se aperto
+          const managerModal = bootstrap.Modal.getInstance(document.getElementById('coursesManagerModal'));
+          if (managerModal) {
+            loadCoursesManager();
+          }
+        } else {
+          showAlert(data.error || 'Errore durante la creazione', 'danger');
+        }
+      } catch (e) {
+        showAlert('Errore di connessione', 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+
+    async function deleteCourse(courseId) {
+      if (!confirm('⚠️ Sei sicuro di voler eliminare questo corso?\n\nTutte le lezioni e i progressi degli utenti verranno eliminati definitivamente.')) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/courses/${courseId}`, { method: 'DELETE' });
+        const data = await res.json();
+
+        if (res.ok) {
+          showAlert('🗑️ Corso eliminato con successo', 'success');
+          loadCoursesManager();
+        } else {
+          showAlert(data.error || 'Errore durante l\'eliminazione', 'danger');
+        }
+      } catch (e) {
+        showAlert('Errore di connessione', 'danger');
+      }
+    }
+
+    function editCourse(courseId) {
+      showAlert('Funzione in sviluppo', 'info');
+      // TODO: Implementare modal di modifica corso
+    }
+
+    async function loadCourseStats() {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        
+        if (res.ok) {
+          const stats = `
+📊 Statistiche CourseConnect:
+• ${data.users_count} utenti registrati
+• ${data.courses_count} corsi attivi  
+• ${data.enrollments_count} iscrizioni totali
+• ${data.posts_count} post pubblicati
+• ${data.comments_count} commenti
+• ${data.notifications_count} notifiche inviate
+          `;
+          showAlert(stats.replace(/\n/g, '<br>'), 'info');
+        }
+      } catch (e) {
+        showAlert('Errore caricamento statistiche', 'danger');
+      }
+    }
+
+    // Event listeners per i form
+    document.addEventListener('DOMContentLoaded', function() {
+      // Contatore caratteri descrizione corso
+      const courseDesc = document.getElementById('course-description');
+      if (courseDesc) {
+        courseDesc.addEventListener('input', function() {
+          document.getElementById('desc-count').textContent = this.value.length;
+        });
+      }
+    });
+
+    // ======== 🎓 NUOVO: SISTEMA CORSI PER UTENTI ========
+    
+    let currentCourse = null;
+    let currentLesson = null;
+    let userCourses = [];
+    let courseLessons = [];
+
+    // Carica lista corsi per gli utenti
+    async function loadCoursesForUsers() {
+      const container = document.getElementById('courses-user-list');
+      container.innerHTML = '<div class="text-center p-4"><div class="spinner"></div><p>Caricamento corsi...</p></div>';
+      
+      try {
+        // Applica filtri
+        const category = document.getElementById('courses-filter-category')?.value || '';
+        const level = document.getElementById('courses-filter-level')?.value || '';
+        const freeOnly = document.getElementById('courses-filter-free')?.checked || false;
+        
+        let url = '/api/courses?';
+        if (category) url += `category=${encodeURIComponent(category)}&`;
+        if (level) url += `skill_level=${encodeURIComponent(level)}&`;
+        if (freeOnly) url += `free_only=true&`;
+        
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        if (res.ok) {
+          renderCoursesForUsers(data.courses || []);
+        } else {
+          container.innerHTML = `<div class="alert alert-danger">Errore: ${data.error}</div>`;
+        }
+      } catch (e) {
+        container.innerHTML = '<div class="alert alert-danger">Errore di connessione</div>';
+      }
+    }
+
+    // Renderizza i corsi per gli utenti
+    function renderCoursesForUsers(courses) {
+      const container = document.getElementById('courses-user-list');
+      
+      if (courses.length === 0) {
+        container.innerHTML = '<div class="text-center p-4"><p class="text-muted">Nessun corso trovato con i filtri selezionati</p></div>';
+        return;
+      }
+      
+      container.innerHTML = `
+        <div class="row">
+          ${courses.map(course => `
+            <div class="col-lg-4 col-md-6 mb-4">
+              <div class="course-card">
+                <img src="${course.thumbnail_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400'}" 
+                     alt="${course.title}" class="course-thumbnail">
+                <div class="course-meta">
+                  <div class="course-title">${course.title}</div>
+                  <div class="course-description">${course.description.substring(0, 100)}...</div>
+                  <div class="course-tags">
+                    <span class="course-tag">${course.category}</span>
+                    <span class="course-tag level-${course.skill_level.toLowerCase()}">${course.skill_level}</span>
+                    ${course.course_type ? `<span class="course-tag">${course.course_type}</span>` : ''}
+                  </div>
+                  <div class="course-stats">
+                    <span><i class="fas fa-clock me-1"></i>${course.duration_hours}h</span>
+                    <span><i class="fas fa-users me-1"></i>${course.enrolled_count || 0} studenti</span>
+                    <span><i class="fas fa-book me-1"></i>${course.lessons_count || 0} lezioni</span>
+                  </div>
+                  <div class="course-price ${course.price === 0 ? 'free' : ''}">
+                    ${course.price === 0 ? 'Gratuito' : `€${course.price}`}
+                  </div>
+                  <div class="course-actions">
+                    <button class="btn btn-primary flex-fill" onclick="viewCourse(${course.id})">
+                      <i class="fas fa-eye me-1"></i>Visualizza
+                    </button>
+                    ${course.is_enrolled ? 
+                      '<button class="btn btn-success flex-fill" disabled><i class="fas fa-check me-1"></i>Iscritto</button>' :
+                      `<button class="btn btn-outline-primary flex-fill" onclick="quickEnroll(${course.id})"><i class="fas fa-user-plus me-1"></i>Iscriviti</button>`
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // Visualizza corso singolo
+    async function viewCourse(courseId) {
+      try {
+        const res = await fetch(`/api/courses/${courseId}`);
+        const data = await res.json();
+        
+        if (res.ok) {
+          currentCourse = data.course;
+          renderCourseView(data.course);
+          
+          // Chiudi modal lista e apri modal corso
+          bootstrap.Modal.getInstance(document.getElementById('coursesListModal')).hide();
+          setTimeout(() => {
+            new bootstrap.Modal(document.getElementById('courseViewModal')).show();
+          }, 300);
+        } else {
+          showAlert(data.error || 'Errore caricamento corso', 'danger');
+        }
+      } catch (e) {
+        showAlert('Errore di connessione', 'danger');
+      }
+    }
+
+    // Renderizza la vista del corso
+    function renderCourseView(course) {
+      document.getElementById('course-view-title').innerHTML = `<i class="fas fa-book me-2"></i>${course.title}`;
+      document.getElementById('course-view-thumbnail').src = course.thumbnail_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400';
+      document.getElementById('course-view-price').textContent = course.price === 0 ? 'Gratuito' : `€${course.price}`;
+      document.getElementById('course-view-level').textContent = course.skill_level;
+      document.getElementById('course-view-duration').textContent = `${course.duration_hours} ore`;
+      document.getElementById('course-view-category').textContent = course.category;
+      document.getElementById('course-view-description').textContent = course.description;
+      document.getElementById('course-students-count').textContent = `${course.enrolled_count || 0} studenti iscritti`;
+      
+      // Aggiorna pulsante iscrizione
+      const enrollBtn = document.getElementById('course-enroll-btn');
+      if (course.is_enrolled) {
+        enrollBtn.innerHTML = '<i class="fas fa-check me-2"></i>Già Iscritto';
+        enrollBtn.className = 'btn btn-success w-100';
+        enrollBtn.disabled = true;
+      } else {
+        enrollBtn.innerHTML = '<i class="fas fa-user-plus me-2"></i>Iscriviti al Corso';
+        enrollBtn.className = 'btn btn-primary w-100';
+        enrollBtn.disabled = false;
+      }
+      
+      // Carica lezioni
+      loadCourseLessons(course.id);
+    }
+
+    // Carica lezioni del corso
+    async function loadCourseLessons(courseId) {
+      try {
+        const res = await fetch(`/api/courses/${courseId}/lessons`);
+        const data = await res.json();
+        
+        if (res.ok) {
+          courseLessons = data.lessons || [];
+          renderCourseLessons(data.lessons || []);
+        } else {
+          document.getElementById('course-lessons-list').innerHTML = '<p class="text-muted">Nessuna lezione disponibile</p>';
+        }
+      } catch (e) {
+        document.getElementById('course-lessons-list').innerHTML = '<p class="text-danger">Errore caricamento lezioni</p>';
+      }
+    }
+
+    // Renderizza le lezioni del corso
+    function renderCourseLessons(lessons) {
+      const container = document.getElementById('course-lessons-list');
+      
+      if (lessons.length === 0) {
+        container.innerHTML = '<p class="text-muted">Nessuna lezione ancora disponibile. L\'amministratore sta preparando i contenuti!</p>';
+        return;
+      }
+      
+      container.innerHTML = lessons.map((lesson, index) => {
+        const isLocked = !currentCourse.is_enrolled && index > 0; // Prima lezione sempre libera
+        const isCompleted = lesson.is_completed || false;
+        
+        return `
+          <div class="lesson-item ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}" 
+               onclick="${isLocked ? '' : `viewLesson(${lesson.id})`}">
+            <div>
+              <div class="lesson-title">
+                ${index + 1}. ${lesson.title}
+                ${isCompleted ? '<i class="fas fa-check-circle text-success ms-2"></i>' : ''}
+                ${isLocked ? '<i class="fas fa-lock text-warning ms-2"></i>' : ''}
+              </div>
+              <div class="lesson-duration">${lesson.duration || '10'} minuti</div>
+            </div>
+            <div class="lesson-status">
+              ${isLocked ? 
+                '<span class="text-warning"><i class="fas fa-lock me-1"></i>Richiede iscrizione</span>' :
+                '<i class="fas fa-play-circle text-primary"></i>'
+              }
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      // Aggiorna obiettivi del corso
+      const objectives = [
+        'Comprendere i concetti fondamentali',
+        'Applicare le tecniche apprese',
+        'Completare progetti pratici',
+        'Ottenere certificazione di completamento'
+      ];
+      
+      document.getElementById('course-objectives').innerHTML = objectives.map(obj => 
+        `<div class="mb-2"><i class="fas fa-check text-success me-2"></i>${obj}</div>`
+      ).join('');
+    }
+
+    // Iscrizione rapida al corso
+    async function quickEnroll(courseId) {
+      if (!currentUser) {
+        showAlert('Devi essere loggato per iscriverti ai corsi', 'warning');
+        return;
+      }
+      
+      try {
+        const res = await fetch(`/api/courses/${courseId}/enroll`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          showAlert('🎉 Iscrizione completata con successo!', 'success');
+          loadCoursesForUsers(); // Ricarica lista
+        } else {
+          showAlert(data.error || 'Errore durante l\'iscrizione', 'danger');
+        }
+      } catch (e) {
+        showAlert('Errore di connessione', 'danger');
+      }
+    }
+
+    // Iscrizione al corso dalla pagina corso
+    async function enrollInCourse() {
+      if (!currentUser) {
+        showAlert('Devi essere loggato per iscriverti ai corsi', 'warning');
+        return;
+      }
+      
+      if (!currentCourse) return;
+      
+      await quickEnroll(currentCourse.id);
+      
+      // Aggiorna vista corso
+      setTimeout(() => {
+        viewCourse(currentCourse.id);
+      }, 1000);
+    }
+
+    // Visualizza lezione
+    async function viewLesson(lessonId) {
+      try {
+        const res = await fetch(`/api/lessons/${lessonId}`);
+        const data = await res.json();
+        
+        if (res.ok) {
+          currentLesson = data.lesson;
+          renderLessonView(data.lesson);
+          
+          // Chiudi modal corso e apri modal lezione
+          bootstrap.Modal.getInstance(document.getElementById('courseViewModal')).hide();
+          setTimeout(() => {
+            new bootstrap.Modal(document.getElementById('lessonViewModal')).show();
+          }, 300);
+        } else {
+          showAlert(data.error || 'Errore caricamento lezione', 'danger');
+        }
+      } catch (e) {
+        showAlert('Errore di connessione', 'danger');
+      }
+    }
+
+    // Renderizza vista lezione
+    function renderLessonView(lesson) {
+      document.getElementById('lesson-view-title').innerHTML = `<i class="fas fa-play-circle me-2"></i>${lesson.title}`;
+      
+      // Contenuto lezione con markdown
+      const content = lesson.content || 'Contenuto in preparazione...';
+      document.getElementById('lesson-content').innerHTML = renderMarkdown(content);
+      
+      // Applica syntax highlighting
+      hljsApply(document.getElementById('lesson-content'));
+      
+      // Aggiorna progress bar
+      updateLessonProgress();
+      
+      // Aggiorna pulsanti navigazione
+      updateLessonNavigation();
+    }
+
+    // Aggiorna barra progresso
+    function updateLessonProgress() {
+      if (!courseLessons || !currentLesson) return;
+      
+      const currentIndex = courseLessons.findIndex(l => l.id === currentLesson.id);
+      const completedLessons = courseLessons.filter(l => l.is_completed).length;
+      const totalLessons = courseLessons.length;
+      const percentage = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+      
+      document.getElementById('lesson-progress-text').textContent = `${percentage}% (${completedLessons}/${totalLessons} lezioni)`;
+      document.getElementById('lesson-progress-bar').style.width = `${percentage}%`;
+    }
+
+    // Aggiorna navigazione lezioni
+    function updateLessonNavigation() {
+      if (!courseLessons || !currentLesson) return;
+      
+      const currentIndex = courseLessons.findIndex(l => l.id === currentLesson.id);
+      const hasPrevious = currentIndex > 0;
+      const hasNext = currentIndex < courseLessons.length - 1;
+      
+      // Pulsanti header
+      document.getElementById('prev-lesson-btn').disabled = !hasPrevious;
+      document.getElementById('next-lesson-btn').disabled = !hasNext;
+      
+      // Pulsanti footer
+      document.getElementById('prev-lesson-btn-bottom').disabled = !hasPrevious;
+      document.getElementById('next-lesson-btn-bottom').disabled = !hasNext;
+      
+      // Pulsante completa lezione
+      const completeBtn = document.getElementById('complete-lesson-btn');
+      if (currentLesson.is_completed) {
+        completeBtn.innerHTML = '<i class="fas fa-check me-2"></i>Completata';
+        completeBtn.className = 'btn btn-success';
+        completeBtn.disabled = true;
+      } else {
+        completeBtn.innerHTML = '<i class="fas fa-check me-2"></i>Segna come Completata';
+        completeBtn.className = 'btn btn-success';
+        completeBtn.disabled = false;
+      }
+    }
+
+    // Lezione precedente
+    function previousLesson() {
+      if (!courseLessons || !currentLesson) return;
+      
+      const currentIndex = courseLessons.findIndex(l => l.id === currentLesson.id);
+      if (currentIndex > 0) {
+        viewLesson(courseLessons[currentIndex - 1].id);
+      }
+    }
+
+    // Lezione successiva  
+    function nextLesson() {
+      if (!courseLessons || !currentLesson) return;
+      
+      const currentIndex = courseLessons.findIndex(l => l.id === currentLesson.id);
+      if (currentIndex < courseLessons.length - 1) {
+        viewLesson(courseLessons[currentIndex + 1].id);
+      }
+    }
+
+    // Segna lezione come completata
+    async function markLessonCompleted() {
+      if (!currentLesson) return;
+      
+      try {
+        const res = await fetch(`/api/lessons/${currentLesson.id}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          currentLesson.is_completed = true;
+          showAlert('✅ Lezione completata!', 'success');
+          updateLessonProgress();
+          updateLessonNavigation();
+          
+          // Auto-avanza alla lezione successiva se disponibile
+          setTimeout(() => {
+            const currentIndex = courseLessons.findIndex(l => l.id === currentLesson.id);
+            if (currentIndex < courseLessons.length - 1) {
+              nextLesson();
+            }
+          }, 1500);
+        } else {
+          showAlert(data.error || 'Errore durante il completamento', 'danger');
+        }
+      } catch (e) {
+        showAlert('Errore di connessione', 'danger');
+      }
+    }
+  </script>
+</body>
+</html>
