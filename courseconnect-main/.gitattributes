@@ -1,0 +1,9 @@
+# Forza il riconoscimento come repository Python per strumenti come GitHub Linguist
+*.py linguist-language=Python
+requirements.txt linguist-language=Python
+Pipfile linguist-language=Python
+
+# Normalizza i fine‑linea
+* text=auto
+
+
