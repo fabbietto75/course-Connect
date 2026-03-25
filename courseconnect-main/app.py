@@ -870,20 +870,37 @@ def health_check():
     """Health check per monitoring"""
     try:
         db.session.execute(text('SELECT 1'))
+        details = request.args.get('details', '').lower() in {'1', 'true', 'yes'}
+        with_notifications = request.args.get('with_notifications', '').lower() in {'1', 'true', 'yes'}
+
+        # Risposta veloce per evitare che Render/health-check vadano in timeout.
         payload = {
             'status': 'healthy',
             'database': 'connected',
-            'users_count': User.query.count(),
-            'posts_count': Post.query.count(),
-            'comments_count': Comment.query.count(),
-            'reviews_count': Review.query.count(),
-            'courses_count': Course.query.count(),
-            'enrollments_count': Enrollment.query.count(),
+            'users_count': 0,
+            'posts_count': 0,
+            'comments_count': 0,
+            'reviews_count': 0,
+            'courses_count': 0,
+            'enrollments_count': 0,
+            'notifications_count': 0,
             'upload_folder': UPLOAD_FOLDER,
             'video_folder': VIDEO_FOLDER,
             'timestamp': datetime.utcnow().isoformat()
         }
-        if request.args.get('with_notifications') == '1':
+
+        if details:
+            payload.update({
+                'users_count': User.query.count(),
+                'posts_count': Post.query.count(),
+                'comments_count': Comment.query.count(),
+                'reviews_count': Review.query.count(),
+                'courses_count': Course.query.count(),
+                'enrollments_count': Enrollment.query.count(),
+                'notifications_count': Notification.query.count(),
+            })
+
+        if with_notifications:
             u = get_current_user()
             if u:
                 payload['unread_notifications'] = Notification.query.filter_by(user_id=u.id, is_read=False).count()

@@ -3616,7 +3616,7 @@
 
     async function loadCourseStats() {
       try {
-        const res = await fetch('/api/health');
+        const res = await fetch('/api/health?details=1');
         const data = await res.json();
         
         if (res.ok) {
