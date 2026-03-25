@@ -1735,6 +1735,7 @@
     let reviews = [];
     let postComments = {}; // Memorizza commenti per ogni post
     let notificationPollingInterval = null; // Per polling notifiche
+    let notificationPollInFlight = false;
 
     document.addEventListener('DOMContentLoaded', function(){ checkAuth(); setupEventListeners(); loadTestimonials(); });
 
@@ -1938,6 +1939,7 @@
     // Polling delle notifiche (ogni 30 secondi)
     function startNotificationPolling() {
       if (!currentUser) return;
+      if (notificationPollingInterval) return;
       
       // Polling iniziale
       pollNotifications();
@@ -1959,6 +1961,8 @@
     // Controlla notifiche non lette (per polling)
     async function pollNotifications() {
       if (!currentUser) return;
+      if (notificationPollInFlight) return;
+      notificationPollInFlight = true;
       
       try {
         const res = await fetch('/api/me/notifications?limit=1');
@@ -1969,6 +1973,8 @@
         }
       } catch (e) {
         // Silenzioso
+      } finally {
+        notificationPollInFlight = false;
       }
     }
 
