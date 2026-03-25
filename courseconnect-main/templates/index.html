@@ -1734,6 +1734,7 @@
     let currentReviewRating = 0; 
     let reviews = [];
     let postComments = {}; // Memorizza commenti per ogni post
+    let personalWorkspaceBlocksCache = [];
     let notificationPollingInterval = null; // Per polling notifiche
     let notificationPollInFlight = false;
 
@@ -2590,6 +2591,7 @@
       container.innerHTML = posts.map(post=>{ 
         const html=renderMarkdown(post.content); 
         const isAuthor = currentUser && (post.author.id === currentUser.id); 
+        const editBtn = isAuthor ? `<button class="action-btn text-warning" onclick="editPost(${post.id})" title="Modifica post"><i class="fas fa-pen me-1"></i>Modifica</button>` : '';
         const deleteBtn = isAuthor ? `<button class="action-btn text-danger" onclick="deletePost(${post.id})" title="Elimina post"><i class="fas fa-trash me-1"></i>Elimina</button>` : ''; 
         const commentsCount = post.comments_count > 0 ? `(${post.comments_count})` : '';
         
@@ -2670,6 +2672,7 @@
                   <button class="action-btn ${post.is_liked ? 'liked' : ''}" onclick="toggleLike(${post.id})"><i class="fas fa-heart me-1"></i><span id="likes-${post.id}">${post.likes_count}</span></button>
                   <button class="action-btn comments-toggle" onclick="toggleComments(${post.id})"><i class="fas fa-comment me-1"></i>Commenti<span class="comments-counter">${commentsCount}</span></button>
                   <button class="action-btn" onclick="sharePost(${post.id})"><i class="fas fa-share me-1"></i>Condividi</button>
+                  ${editBtn}
                   ${deleteBtn}
                 </div>
                 
@@ -2805,6 +2808,41 @@
           showAlert(data.error || 'Errore durante l\'eliminazione', 'danger');
         }
       } catch(e){
+        showAlert('Errore di connessione', 'danger');
+      }
+    }
+
+    async function editPost(postId){
+      const post = posts.find(p => p.id === postId);
+      if (!post) {
+        showAlert('Post non trovato', 'danger');
+        return;
+      }
+      const edited = prompt('Modifica il contenuto del post:', post.content || '');
+      if (edited === null) return;
+      const content = String(edited).trim();
+      if (!content) {
+        showAlert('Il contenuto non può essere vuoto', 'danger');
+        return;
+      }
+      if (content.length > 4000) {
+        showAlert('Post troppo lungo (max 4000 caratteri)', 'danger');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/posts/${postId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showAlert('✏️ Post aggiornato', 'success');
+          await loadPosts();
+        } else {
+          showAlert(data.error || 'Errore aggiornamento post', 'danger');
+        }
+      } catch (e) {
         showAlert('Errore di connessione', 'danger');
       }
     }
@@ -3651,6 +3689,7 @@
     function renderPersonalWorkspaceBlocks(blocks) {
       const box = document.getElementById('personal-workspace-list');
       if (!box) return;
+      personalWorkspaceBlocksCache = blocks || [];
       if (!blocks.length) {
         box.innerHTML = '<p class="text-muted small mb-0">Nessun elemento ancora. Aggiungi note, link o file qui sotto.</p>';
         return;
@@ -3681,6 +3720,7 @@
                   ${body}
                 </div>
                 <div class="btn-group btn-group-sm flex-shrink-0">
+                  <button type="button" class="btn btn-outline-warning" title="Modifica" onclick="editWorkspaceBlock(${b.id})"><i class="fas fa-pen"></i></button>
                   <button type="button" class="btn btn-outline-secondary" title="Archivia" onclick="archiveWorkspaceBlock(${b.id})"><i class="fas fa-box-archive"></i></button>
                   <button type="button" class="btn btn-outline-danger" title="Elimina" onclick="deleteWorkspaceBlock(${b.id})"><i class="fas fa-trash"></i></button>
                 </div>
@@ -3688,6 +3728,40 @@
             </div>
           </div>`;
       }).join('');
+    }
+
+    async function editWorkspaceBlock(id) {
+      const b = personalWorkspaceBlocksCache.find(x => x.id === id);
+      if (!b) {
+        showAlert('Elemento non trovato', 'danger');
+        return;
+      }
+      const nextTitle = prompt('Titolo elemento:', b.title || '');
+      if (nextTitle === null) return;
+      const nextContent = prompt('Contenuto (nota/codice):', b.content || '');
+      if (nextContent === null) return;
+      const nextUrl = prompt('URL (se presente):', b.url || '');
+      if (nextUrl === null) return;
+      try {
+        const res = await fetch(`/api/me/personal-workspace/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: String(nextTitle).trim(),
+            content: String(nextContent).trim(),
+            url: String(nextUrl).trim()
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showAlert('✏️ Elemento aggiornato', 'success');
+          loadPersonalWorkspace();
+        } else {
+          showAlert(data.error || 'Errore aggiornamento elemento', 'danger');
+        }
+      } catch (e) {
+        showAlert('Errore di connessione', 'danger');
+      }
     }
 
     async function archiveWorkspaceBlock(id) {

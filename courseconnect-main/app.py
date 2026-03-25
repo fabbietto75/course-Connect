@@ -798,6 +798,9 @@ def _compress_video_if_possible(video_path: str):
 
     try:
         original_size = os.path.getsize(video_path)
+        max_opt_mb = int(os.environ.get('VIDEO_OPTIMIZE_MAX_MB', '80'))
+        if original_size > (max_opt_mb * 1024 * 1024):
+            return True, f"skip_troppo_grande>{max_opt_mb}MB"
         if original_size < 2 * 1024 * 1024:
             return True, "skip_file_piccolo"
 
@@ -817,9 +820,8 @@ def _compress_video_if_possible(video_path: str):
         result = subprocess.run(
             cmd,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=int(os.environ.get('VIDEO_COMPRESS_TIMEOUT_SEC', '180'))
+            stderr=subprocess.DEVNULL,
+            timeout=int(os.environ.get('VIDEO_COMPRESS_TIMEOUT_SEC', '120'))
         )
 
         if result.returncode != 0 or not os.path.exists(compressed_path):
@@ -1218,6 +1220,43 @@ def delete_post(post_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Errore eliminazione post: {str(e)}'}), 500
+
+
+@app.route('/api/posts/<int:post_id>', methods=['PUT'])
+def update_post(post_id):
+    """Modifica post (solo autore o admin)"""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+
+        post = db.session.get(Post, post_id)
+        if not post:
+            return jsonify({'error': 'Post non trovato'}), 404
+
+        if post.user_id != user.id and not user.is_admin:
+            return jsonify({'error': 'Non hai i permessi per modificare questo post'}), 403
+
+        data = _payload()
+        content = (data.get('content') or '').strip()
+        if not content:
+            return jsonify({'error': 'Il contenuto non può essere vuoto'}), 400
+        if len(content) > 4000:
+            return jsonify({'error': 'Post troppo lungo (max 4000 caratteri)'}), 400
+
+        post.content = content
+        if 'post_type' in data:
+            pt = (data.get('post_type') or '').strip().lower()
+            if pt in ALLOWED_POST_TYPES:
+                post.post_type = pt
+        if 'code_language' in data:
+            post.code_language = (data.get('code_language') or '').strip()[:40]
+
+        db.session.commit()
+        return jsonify({'message': 'Post aggiornato con successo', 'post': post.to_dict(user)})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Errore modifica post: {str(e)}'}), 500
 
 
 # ======= COMMENTI API =======
