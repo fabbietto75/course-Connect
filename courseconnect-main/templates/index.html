@@ -3603,12 +3603,22 @@
       const urlWrap = document.getElementById('ws-url-wrap');
       const fileWrap = document.getElementById('ws-file-wrap');
       const contentWrap = document.getElementById('ws-content-wrap');
+      const contentTextarea = document.getElementById('ws-block-content');
+      const titleInput = document.getElementById('ws-block-title');
       if (!urlWrap || !fileWrap || !contentWrap) return;
       const needsUrl = (t === 'link' || t === 'image' || t === 'video' || t === 'file');
       const needsFile = (t === 'image' || t === 'video' || t === 'file');
       urlWrap.style.display = needsUrl ? 'block' : 'none';
       fileWrap.style.display = needsFile ? 'block' : 'none';
       contentWrap.style.display = (t === 'container' || t === 'link') ? 'none' : 'block';
+      // Per le cartelle/sezioni il contenuto della textarea non deve essere inviato.
+      if (contentTextarea) {
+        contentTextarea.disabled = t === 'container';
+        if (t === 'container') contentTextarea.value = '';
+      }
+      if (titleInput) {
+        titleInput.disabled = t !== 'container';
+      }
     }
 
     async function loadPersonalWorkspace() {
@@ -3720,14 +3730,26 @@
         return;
       }
       const type = document.getElementById('ws-block-type')?.value || 'note';
+      const contentVal = document.getElementById('ws-block-content')?.value || '';
+      const titleVal = document.getElementById('ws-block-title')?.value || '';
+      const urlVal = document.getElementById('ws-block-url')?.value || '';
       const fd = new FormData();
       fd.append('block_type', type);
-      fd.append('title', (document.getElementById('ws-block-title')?.value || '').trim());
-      fd.append('content', document.getElementById('ws-block-content')?.value || '');
-      fd.append('url', (document.getElementById('ws-block-url')?.value || '').trim());
+      fd.append('title', String(titleVal).trim());
+      fd.append('content', contentVal);
+      fd.append('url', String(urlVal).trim());
       const wf = document.getElementById('ws-block-file');
       if (wf && wf.files && wf.files[0]) {
         fd.append('file', wf.files[0]);
+      }
+      // Validazioni UX per evitare blocchi "container" salvati pensando di aver creato una nota.
+      if ((type === 'note' || type === 'code') && String(contentVal).trim() === '') {
+        showAlert('Scrivi il contenuto della nota (o dello snippet codice) prima di salvare', 'danger');
+        return;
+      }
+      if (type === 'container' && String(titleVal).trim() === '') {
+        showAlert('Per una cartella/sezione serve un titolo', 'danger');
+        return;
       }
       const btn = document.getElementById('ws-add-btn');
       if (btn) btn.disabled = true;
