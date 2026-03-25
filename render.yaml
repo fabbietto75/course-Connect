@@ -5,7 +5,8 @@ services:
     name: courseconnect
     runtime: python
     buildCommand: pip install -r courseconnect-main/requirements.txt
-    startCommand: gunicorn --chdir courseconnect-main --bind 0.0.0.0:$PORT app:app
+    # Opzioni per upload video: meno workers (SQLite più stabile) + timeout maggiore
+    startCommand: gunicorn --chdir courseconnect-main --bind 0.0.0.0:$PORT --workers 1 --worker-class gthread --threads 2 --timeout 300 --graceful-timeout 30 app:app
     disk:
       name: uploads
       mountPath: /opt/render/project/src/courseconnect-main/static/uploads

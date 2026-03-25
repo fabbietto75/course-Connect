@@ -976,8 +976,13 @@ def create_post():
             code_language = (data.get('code_language') or '').strip()[:40]
             print(f"🔍 Form request detected - Content: {len(content)} chars")
             if file:
-                print(f"🔍 File detected: {file.filename}, Size: {len(file.read())} bytes")
-                file.seek(0)  # Reset file pointer dopo la lettura
+                # Evitiamo di leggere tutto il file in RAM solo per log.
+                # Su video grandi questo può causare OOM/timeout e far riavviare il worker.
+                content_length = getattr(file, 'content_length', None) or request.content_length
+                if content_length:
+                    print(f"🔍 File detected: {file.filename}, Size: {content_length} bytes")
+                else:
+                    print(f"🔍 File detected: {file.filename}")
 
         if post_type not in ALLOWED_POST_TYPES:
             post_type = 'text'
@@ -994,8 +999,9 @@ def create_post():
         if file and file.filename:
             print(f"🔍 Processing file: {file.filename}")
             print(f"🔍 File content type: {file.content_type}")
-            print(f"🔍 File size: {len(file.read())} bytes")
-            file.seek(0)  # Reset file pointer
+            content_length = getattr(file, 'content_length', None) or request.content_length
+            if content_length:
+                print(f"🔍 File size: {content_length} bytes")
             
             file_type = get_file_type(file.filename)
             print(f"🔍 File type detected: {file_type}")
@@ -1323,13 +1329,14 @@ def create_review():
 def uploaded_file(filename):
     """Serve file caricati"""
     print(f"📁 Serving file: /uploads/{filename}")
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=False)
+    # `conditional=True` aiuta browser/streamer con caching e (di solito) anche con range requests.
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=False, conditional=True)
 
 @app.route('/static/uploads/<path:filename>')
 def static_uploaded_file(filename):
     """Serve file caricati (route alternativa)"""
     print(f"📁 Serving static file: /static/uploads/{filename}")
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=False)
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=False, conditional=True)
 
 
 @app.route('/api/upload', methods=['POST'])

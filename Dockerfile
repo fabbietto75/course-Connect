@@ -13,4 +13,4 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 COPY courseconnect-main/ .
 
-CMD exec gunicorn --bind 0.0.0.0:${PORT} app:app
+CMD exec gunicorn --workers 1 --worker-class gthread --threads 2 --timeout 300 --graceful-timeout 30 --bind 0.0.0.0:${PORT} app:app
