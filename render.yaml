@@ -1,0 +1,11 @@
+# Blueprint Render: forza Python 3.11 (necessario per psycopg2-binary).
+# Dopo il push: Dashboard → Blueprint → collega questo repo, oppure copia envVars nel servizio esistente.
+services:
+  - type: web
+    name: courseconnect
+    runtime: python
+    buildCommand: pip install -r courseconnect-main/requirements.txt
+    startCommand: gunicorn --chdir courseconnect-main --bind 0.0.0.0:$PORT app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
