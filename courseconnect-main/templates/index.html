@@ -1214,12 +1214,12 @@
               </div>
               <div class="col-md-7" id="ws-title-wrap">
                 <label class="form-label small">Titolo</label>
-                <input type="text" class="form-control form-control-sm" id="ws-block-title" placeholder="Titolo (obbligatorio per le sezioni)">
+                <input type="text" class="form-control form-control-sm" id="ws-block-title" placeholder="Titolo (opzionale; obbligatorio per le sezioni)">
               </div>
             </div>
             <div class="mb-2" id="ws-content-wrap">
               <label class="form-label small">Testo / contenuto</label>
-              <textarea class="form-control form-control-sm" id="ws-block-content" rows="3" placeholder="Scrivi qui la nota o il codice…"></textarea>
+              <textarea class="form-control" id="ws-block-content" rows="8" style="min-height: 240px;" placeholder="Scrivi qui la nota o il codice…"></textarea>
             </div>
             <div class="mb-2" id="ws-url-wrap" style="display:none;">
               <label class="form-label small">URL</label>
@@ -3654,9 +3654,8 @@
         contentTextarea.disabled = t === 'container';
         if (t === 'container') contentTextarea.value = '';
       }
-      if (titleInput) {
-        titleInput.disabled = t !== 'container';
-      }
+      // Titolo editabile per tutti i tipi (obbligatorio solo per le sezioni/cartelle).
+      if (titleInput) titleInput.disabled = false;
     }
 
     async function loadPersonalWorkspace() {
