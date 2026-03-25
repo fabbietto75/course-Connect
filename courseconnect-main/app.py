@@ -9,7 +9,7 @@ from sqlalchemy import text, inspect
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
-import os, json
+import os, json, subprocess
 
 # ========================================
 # FLASK APP & CONFIG
@@ -50,7 +50,9 @@ app.config.setdefault('SESSION_COOKIE_SECURE', True)
 # Uploads (immagini + video) - FIX COMPLETO
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.join(os.getcwd(), 'static', 'uploads'))
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'}
-MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB max file size
+# Limite upload configurabile da env (default 200MB, più adatto ai video)
+MAX_CONTENT_LENGTH_MB = int(os.environ.get('MAX_CONTENT_LENGTH_MB', '200'))
+MAX_CONTENT_LENGTH = MAX_CONTENT_LENGTH_MB * 1024 * 1024
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Crea anche la cartella video
 VIDEO_FOLDER = os.path.join(UPLOAD_FOLDER, 'videos')
@@ -61,6 +63,7 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 
 print(f"📁 Upload folder: {UPLOAD_FOLDER}")
 print(f"🎥 Video folder: {VIDEO_FOLDER}")
+print(f"📦 Max upload size: {MAX_CONTENT_LENGTH_MB}MB")
 
 db = SQLAlchemy(app)
 
@@ -782,6 +785,70 @@ def get_file_type(filename):
     return None
 
 
+def _compress_video_if_possible(video_path: str):
+    """
+    Comprimi/transcodifica video in MP4 (H264/AAC) quando ffmpeg è disponibile.
+    Se ffmpeg non è disponibile o la compressione non conviene, mantiene il file originale.
+    """
+    if not os.path.exists(video_path):
+        return False, "file_non_trovato"
+
+    ffmpeg_bin = os.environ.get('FFMPEG_BINARY', 'ffmpeg').strip() or 'ffmpeg'
+    compressed_path = f"{video_path}.compressed.mp4"
+
+    try:
+        original_size = os.path.getsize(video_path)
+        if original_size < 2 * 1024 * 1024:
+            return True, "skip_file_piccolo"
+
+        cmd = [
+            ffmpeg_bin, '-y',
+            '-i', video_path,
+            '-vf', "scale='min(1280,iw)':-2",
+            '-c:v', 'libx264',
+            '-preset', 'veryfast',
+            '-crf', os.environ.get('VIDEO_CRF', '35'),
+            '-movflags', '+faststart',
+            '-c:a', 'aac',
+            '-b:a', '96k',
+            compressed_path
+        ]
+
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=int(os.environ.get('VIDEO_COMPRESS_TIMEOUT_SEC', '180'))
+        )
+
+        if result.returncode != 0 or not os.path.exists(compressed_path):
+            if os.path.exists(compressed_path):
+                os.remove(compressed_path)
+            return False, f"ffmpeg_errore:{result.returncode}"
+
+        compressed_size = os.path.getsize(compressed_path)
+        if compressed_size < original_size:
+            os.replace(compressed_path, video_path)
+            return True, f"compresso:{original_size}->{compressed_size}"
+
+        os.remove(compressed_path)
+        return True, "skip_non_conveniente"
+
+    except FileNotFoundError:
+        if os.path.exists(compressed_path):
+            os.remove(compressed_path)
+        return False, "ffmpeg_non_trovato"
+    except subprocess.TimeoutExpired:
+        if os.path.exists(compressed_path):
+            os.remove(compressed_path)
+        return False, "compression_timeout"
+    except Exception as e:
+        if os.path.exists(compressed_path):
+            os.remove(compressed_path)
+        return False, f"compression_exception:{e}"
+
+
 def _to_bool(value, default=False):
     """Converte stringhe/bool/int in boolean in modo robusto."""
     if value is None:
@@ -1033,6 +1100,14 @@ def create_post():
                 if os.path.exists(filepath):
                     file_size = os.path.getsize(filepath)
                     print(f"✅ File saved successfully: {filepath} ({file_size} bytes)")
+                    if file_type == 'video':
+                        ok, compress_msg = _compress_video_if_possible(filepath)
+                        final_size = os.path.getsize(filepath) if os.path.exists(filepath) else 0
+                        if ok:
+                            print(f"🎬 Video optimization: {compress_msg} - final size: {final_size} bytes")
+                        else:
+                            # Fallback sicuro: teniamo l'originale senza bloccare il post
+                            print(f"⚠️ Video optimization skipped/error: {compress_msg} - size: {final_size} bytes")
                 else:
                     print(f"❌ File NOT saved: {filepath}")
                     return jsonify({'error': 'Errore salvataggio file'}), 500
@@ -1056,6 +1131,13 @@ def create_post():
         traceback.print_exc()
         db.session.rollback()
         return jsonify({'error': f'Errore creazione post: {str(e)}'}), 500
+
+
+@app.errorhandler(413)
+def handle_large_file(_e):
+    return jsonify({
+        'error': f'File troppo grande. Limite attuale: {MAX_CONTENT_LENGTH_MB}MB'
+    }), 413
 
 
 @app.route('/api/posts/<int:post_id>/like', methods=['POST'])
