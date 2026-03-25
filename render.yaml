@@ -6,6 +6,12 @@ services:
     runtime: python
     buildCommand: pip install -r courseconnect-main/requirements.txt
     startCommand: gunicorn --chdir courseconnect-main --bind 0.0.0.0:$PORT app:app
+    disk:
+      name: uploads
+      mountPath: /opt/render/project/src/courseconnect-main/static/uploads
+      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
+      - key: UPLOAD_FOLDER
+        value: /opt/render/project/src/courseconnect-main/static/uploads
