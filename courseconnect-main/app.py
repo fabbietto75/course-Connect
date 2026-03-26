@@ -3,13 +3,13 @@
 # app.py - Backend Flask con Sistema Completo + Video Fix + ENDPOINT CORSI FISSI + FIX is_private
 # ========================================
 
-from flask import Flask, render_template, request, jsonify, session, send_from_directory
+from flask import Flask, render_template, request, jsonify, session, send_from_directory, Response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text, inspect
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
-import os, json, subprocess
+import os, json, subprocess, mimetypes
 
 # ========================================
 # FLASK APP & CONFIG
@@ -245,6 +245,14 @@ class Review(db.Model):
             'created_at': (self.created_at or datetime.utcnow()).isoformat(),
             'isStatic': False
         }
+
+class UploadedFileBackup(db.Model):
+    """Backup upload nel DB per resilienza ai riavvii su filesystem effimero."""
+    id = db.Column(db.Integer, primary_key=True)
+    file_key = db.Column(db.String(400), unique=True, nullable=False, index=True)  # es: "abc.jpg" o "videos/xyz.mp4"
+    mime_type = db.Column(db.String(120), default='application/octet-stream')
+    data = db.Column(db.LargeBinary, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 # ========================================
@@ -850,6 +858,30 @@ def _compress_video_if_possible(video_path: str):
             os.remove(compressed_path)
         return False, f"compression_exception:{e}"
 
+def _save_upload_backup(file_key: str, absolute_path: str):
+    """
+    Salva (o aggiorna) una copia del file nel DB.
+    Utile quando il filesystem del servizio viene azzerato a riavvio/deploy.
+    """
+    try:
+        if not file_key or not os.path.exists(absolute_path):
+            return
+        with open(absolute_path, 'rb') as fp:
+            raw = fp.read()
+        if not raw:
+            return
+        mime = mimetypes.guess_type(file_key)[0] or 'application/octet-stream'
+        row = UploadedFileBackup.query.filter_by(file_key=file_key).first()
+        if row:
+            row.mime_type = mime
+            row.data = raw
+        else:
+            row = UploadedFileBackup(file_key=file_key, mime_type=mime, data=raw)
+            db.session.add(row)
+    except Exception as e:
+        # Non bloccare il flusso principale se il backup fallisce.
+        print(f"⚠️ Upload backup skip for {file_key}: {e}")
+
 
 def _to_bool(value, default=False):
     """Converte stringhe/bool/int in boolean in modo robusto."""
@@ -1119,14 +1151,24 @@ def create_post():
                 if os.path.exists(filepath):
                     file_size = os.path.getsize(filepath)
                     print(f"✅ File saved successfully: {filepath} ({file_size} bytes)")
+                    # Backup DB per persistenza (immagini sempre; video opzionale)
+                    backup_videos = os.environ.get('BACKUP_VIDEOS_IN_DB', '').strip().lower() in {'1', 'true', 'yes'}
+                    if file_type == 'image' or backup_videos:
+                        file_key = post.video_filename if file_type == 'video' else post.image_filename
+                        _save_upload_backup(file_key, filepath)
                     if file_type == 'video':
-                        ok, compress_msg = _compress_video_if_possible(filepath)
-                        final_size = os.path.getsize(filepath) if os.path.exists(filepath) else 0
-                        if ok:
-                            print(f"🎬 Video optimization: {compress_msg} - final size: {final_size} bytes")
+                        # Compressione video inline disabilitata di default:
+                        # su hosting web può superare timeout worker e bloccare il salvataggio post.
+                        enable_video_compression = os.environ.get('ENABLE_VIDEO_COMPRESSION', '').strip().lower() in {'1', 'true', 'yes'}
+                        if enable_video_compression:
+                            ok, compress_msg = _compress_video_if_possible(filepath)
+                            final_size = os.path.getsize(filepath) if os.path.exists(filepath) else 0
+                            if ok:
+                                print(f"🎬 Video optimization: {compress_msg} - final size: {final_size} bytes")
+                            else:
+                                print(f"⚠️ Video optimization skipped/error: {compress_msg} - size: {final_size} bytes")
                         else:
-                            # Fallback sicuro: teniamo l'originale senza bloccare il post
-                            print(f"⚠️ Video optimization skipped/error: {compress_msg} - size: {final_size} bytes")
+                            print("🎬 Video optimization disabled (ENABLE_VIDEO_COMPRESSION not set)")
                 else:
                     print(f"❌ File NOT saved: {filepath}")
                     return jsonify({'error': 'Errore salvataggio file'}), 500
@@ -1214,6 +1256,7 @@ def delete_post(post_id):
                 if os.path.exists(file_path):
                     os.remove(file_path)
                     print(f"🗑️ Deleted image: {file_path}")
+                UploadedFileBackup.query.filter_by(file_key=post.image_filename).delete()
             except Exception as e:
                 print(f"Could not delete image file: {e}")
 
@@ -1223,6 +1266,7 @@ def delete_post(post_id):
                 if os.path.exists(file_path):
                     os.remove(file_path)
                     print(f"🗑️ Deleted video: {file_path}")
+                UploadedFileBackup.query.filter_by(file_key=post.video_filename).delete()
             except Exception as e:
                 print(f"Could not delete video file: {e}")
 
@@ -1467,8 +1511,16 @@ def create_review():
 def uploaded_file(filename):
     """Serve file caricati"""
     print(f"📁 Serving file: /uploads/{filename}")
-    # `conditional=True` aiuta browser/streamer con caching e (di solito) anche con range requests.
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=False, conditional=True)
+    abs_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if os.path.exists(abs_path):
+        # `conditional=True` aiuta browser/streamer con caching e (di solito) anche con range requests.
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=False, conditional=True)
+
+    # Fallback DB: utile dopo restart/deploy quando il file non è presente sul disco locale.
+    row = UploadedFileBackup.query.filter_by(file_key=filename).first()
+    if row and row.data:
+        return Response(row.data, mimetype=row.mime_type or 'application/octet-stream')
+    return jsonify({'error': 'File non trovato'}), 404
 
 @app.route('/static/uploads/<path:filename>')
 def static_uploaded_file(filename):
@@ -1501,6 +1553,7 @@ def upload_file():
 
     save_path = os.path.join(app.config['UPLOAD_FOLDER'], final_name)
     f.save(save_path)
+    _save_upload_backup(final_name, save_path)
 
     file_url = f"/uploads/{final_name}"
     print(f"✅ File uploaded: {file_url}")
