@@ -1648,6 +1648,7 @@ def upload_file():
     save_path = os.path.join(app.config['UPLOAD_FOLDER'], final_name)
     f.save(save_path)
     _save_upload_backup(final_name, save_path)
+    db.session.commit()
 
     file_url = f"/uploads/{final_name}"
     print(f"✅ File uploaded: {file_url}")
