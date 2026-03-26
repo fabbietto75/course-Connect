@@ -894,6 +894,18 @@ def _to_bool(value, default=False):
         return bool(value)
     return str(value).strip().lower() in {'1', 'true', 'yes', 'on'}
 
+
+def _collect_descendant_comment_ids(root_comment_id: int):
+    """Ritorna tutti gli id dei commenti discendenti (BFS) partendo dal commento radice."""
+    collected = []
+    queue = [root_comment_id]
+    while queue:
+        cid = queue.pop(0)
+        collected.append(cid)
+        children = db.session.query(Comment.id).filter_by(parent_comment_id=cid).all()
+        queue.extend([c[0] for c in children])
+    return collected
+
 # ========================================
 # API ROUTES
 # ========================================
@@ -1271,6 +1283,12 @@ def delete_post(post_id):
             except Exception as e:
                 print(f"Could not delete video file: {e}")
 
+        # Prima pulisce notifiche collegate a post/commenti, evitando FK violation su comment_id.
+        comment_ids = [row[0] for row in db.session.query(Comment.id).filter_by(post_id=post_id).all()]
+        Notification.query.filter_by(post_id=post_id).delete(synchronize_session=False)
+        if comment_ids:
+            Notification.query.filter(Notification.comment_id.in_(comment_ids)).delete(synchronize_session=False)
+
         # Elimina il post (cascade eliminerà automaticamente like e commenti)
         db.session.delete(post)
         db.session.commit()
@@ -1429,6 +1447,10 @@ def delete_comment(comment_id):
         # Solo l'autore del commento o admin possono eliminare
         if comment.user_id != user.id and not user.is_admin:
             return jsonify({'error': 'Non hai i permessi per eliminare questo commento'}), 403
+
+        # Elimina prima notifiche legate al commento (e alle eventuali risposte), altrimenti FK violation.
+        all_ids = _collect_descendant_comment_ids(comment_id)
+        Notification.query.filter(Notification.comment_id.in_(all_ids)).delete(synchronize_session=False)
 
         # Elimina il commento
         db.session.delete(comment)
