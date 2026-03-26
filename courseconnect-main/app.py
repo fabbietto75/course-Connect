@@ -234,7 +234,7 @@ class Review(db.Model):
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
-    def to_dict(self):
+    def to_dict(self, current_user=None):
         return {
             'id': self.id,
             'name': f"{self.author.nome} {self.author.cognome}",
@@ -243,7 +243,8 @@ class Review(db.Model):
             'rating': self.rating,
             'photo': self.photo_url,
             'created_at': (self.created_at or datetime.utcnow()).isoformat(),
-            'isStatic': False
+            'isStatic': False,
+            'user_can_delete': bool(current_user and current_user.is_admin),
         }
 
 class UploadedFileBackup(db.Model):
@@ -1447,9 +1448,10 @@ def delete_comment(comment_id):
 def get_reviews():
     """Ottieni tutte le recensioni approvate"""
     try:
+        user = get_current_user()
         reviews = Review.query.filter_by(is_approved=True).order_by(Review.created_at.desc()).all()
         return jsonify({
-            'reviews': [review.to_dict() for review in reviews],
+            'reviews': [review.to_dict(user) for review in reviews],
             'total': len(reviews)
         })
     except Exception as e:
@@ -1504,6 +1506,36 @@ def create_review():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Errore creazione recensione: {str(e)}'}), 500
+
+
+@app.route('/api/reviews/<int:review_id>', methods=['DELETE'])
+def delete_review(review_id):
+    """Elimina recensione (solo admin)."""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Login richiesto'}), 401
+        if not user.is_admin:
+            return jsonify({'error': 'Solo amministratore può eliminare recensioni'}), 403
+
+        review = db.session.get(Review, review_id)
+        if not review:
+            return jsonify({'error': 'Recensione non trovata'}), 404
+
+        # Se la foto è un upload locale, pulisce file + backup DB.
+        if review.photo_url and review.photo_url.startswith('/uploads/'):
+            key = review.photo_url.replace('/uploads/', '', 1)
+            fp = os.path.join(app.config['UPLOAD_FOLDER'], key)
+            if os.path.exists(fp):
+                os.remove(fp)
+            UploadedFileBackup.query.filter_by(file_key=key).delete()
+
+        db.session.delete(review)
+        db.session.commit()
+        return jsonify({'message': 'Recensione eliminata', 'deleted_id': review_id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Errore eliminazione recensione: {str(e)}'}), 500
 
 
 # ======= UPLOADS =======

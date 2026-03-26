@@ -3177,6 +3177,11 @@
       let html = '<div class="row">';
       testimonials.forEach(t => {
         const stars = '<i class="fas fa-star"></i>'.repeat(t.rating);
+        const adminDeleteBtn = (!t.isStatic && currentUser && currentUser.is_admin && t.id) ? `
+          <button class="btn btn-sm btn-outline-danger mt-2" onclick="deleteReview(${t.id})" title="Elimina recensione">
+            <i class="fas fa-trash me-1"></i>Elimina
+          </button>
+        ` : '';
         html += `
           <div class="col-lg-4 mb-4">
             <div class="testimonial-card fade-in">
@@ -3186,6 +3191,7 @@
               <div class="testimonial-author">
                 <div class="testimonial-name">${t.name}</div>
                 <div class="testimonial-course">${t.course}</div>
+                ${adminDeleteBtn}
               </div>
             </div>
           </div>
@@ -3286,6 +3292,28 @@
       } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
+      }
+    }
+
+    async function deleteReview(reviewId){
+      if(!currentUser || !currentUser.is_admin){
+        showAlert('Solo amministratore può eliminare recensioni', 'danger');
+        return;
+      }
+      if(!confirm('Eliminare questa recensione?')){
+        return;
+      }
+      try{
+        const res = await fetch(`/api/reviews/${reviewId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if(res.ok){
+          showAlert('Recensione eliminata con successo', 'success');
+          loadTestimonials();
+        } else {
+          showAlert(data.error || 'Errore eliminazione recensione', 'danger');
+        }
+      } catch(e){
+        showAlert('Errore di connessione', 'danger');
       }
     }
 
