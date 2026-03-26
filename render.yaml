@@ -17,3 +17,7 @@ services:
         value: "3.11.9"
       - key: UPLOAD_FOLDER
         value: /opt/render/project/src/courseconnect-main/static/uploads
+      - key: BACKUP_VIDEOS_IN_DB
+        value: "true"
+      - key: UPLOAD_BACKUP_MAX_MB
+        value: "120"

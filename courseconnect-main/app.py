@@ -867,6 +867,14 @@ def _save_upload_backup(file_key: str, absolute_path: str):
     try:
         if not file_key or not os.path.exists(absolute_path):
             return
+        # Evita di saturare il DB con file troppo grandi (configurabile da env).
+        max_backup_mb = int(os.environ.get('UPLOAD_BACKUP_MAX_MB', '80'))
+        max_backup_bytes = max_backup_mb * 1024 * 1024
+        file_size = os.path.getsize(absolute_path)
+        if file_size > max_backup_bytes:
+            print(f"⚠️ Upload backup skipped for {file_key}: file too large ({file_size} bytes > {max_backup_bytes})")
+            return
+
         with open(absolute_path, 'rb') as fp:
             raw = fp.read()
         if not raw:
@@ -1165,7 +1173,7 @@ def create_post():
                     file_size = os.path.getsize(filepath)
                     print(f"✅ File saved successfully: {filepath} ({file_size} bytes)")
                     # Backup DB per persistenza (immagini sempre; video opzionale)
-                    backup_videos = os.environ.get('BACKUP_VIDEOS_IN_DB', '').strip().lower() in {'1', 'true', 'yes'}
+                    backup_videos = os.environ.get('BACKUP_VIDEOS_IN_DB', 'true').strip().lower() in {'1', 'true', 'yes'}
                     if file_type == 'image' or backup_videos:
                         file_key = post.video_filename if file_type == 'video' else post.image_filename
                         _save_upload_backup(file_key, filepath)
@@ -1787,6 +1795,7 @@ def create_course():
                 
                 if os.path.exists(filepath):
                     thumbnail_url = f"/uploads/{filename}"
+                    _save_upload_backup(filename, filepath)
                     print(f"✅ Course thumbnail saved: {thumbnail_url}")
                 else:
                     return jsonify({'error': 'Errore salvataggio immagine'}), 500
@@ -1858,12 +1867,21 @@ def update_course(course_id):
 
         if file and file.filename:
             if _allowed_file(file.filename) and get_file_type(file.filename) == 'image':
+                # Se c'era una thumbnail upload precedente, prova a pulire file/backup.
+                if course.thumbnail_url and course.thumbnail_url.startswith('/uploads/'):
+                    old_key = course.thumbnail_url.replace('/uploads/', '', 1)
+                    old_fp = os.path.join(app.config['UPLOAD_FOLDER'], old_key)
+                    if os.path.exists(old_fp):
+                        os.remove(old_fp)
+                    UploadedFileBackup.query.filter_by(file_key=old_key).delete()
+
                 import uuid
                 filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(filepath)
                 if os.path.exists(filepath):
                     course.thumbnail_url = f"/uploads/{filename}"
+                    _save_upload_backup(filename, filepath)
                 else:
                     return jsonify({'error': 'Errore salvataggio immagine'}), 500
             else:
@@ -2328,6 +2346,13 @@ def delete_course(course_id):
         course = db.session.get(Course, course_id)
         if not course:
             return jsonify({'error': 'Corso non trovato'}), 404
+
+        if course.thumbnail_url and course.thumbnail_url.startswith('/uploads/'):
+            key = course.thumbnail_url.replace('/uploads/', '', 1)
+            fp = os.path.join(app.config['UPLOAD_FOLDER'], key)
+            if os.path.exists(fp):
+                os.remove(fp)
+            UploadedFileBackup.query.filter_by(file_key=key).delete()
         
         # Elimina il corso (cascade eliminerà lezioni, iscrizioni, progressi)
         db.session.delete(course)
