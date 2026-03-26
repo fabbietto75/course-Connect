@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CourseConnect - Aggiornamento in corso</title>
+  <style>
+    :root{
+      --bg1:#10131a;
+      --bg2:#1b2240;
+      --accent:#7c8cff;
+      --text:#e9ecff;
+      --muted:#b8c0f2;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:linear-gradient(135deg,var(--bg1),var(--bg2));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .card{
+      width:min(720px,100%);
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:18px;
+      padding:28px;
+      box-shadow:0 10px 40px rgba(0,0,0,.35);
+      backdrop-filter:blur(6px);
+    }
+    h1{margin:0 0 10px;font-size:clamp(1.4rem,2.4vw,2rem)}
+    p{margin:0;color:var(--muted);line-height:1.5}
+    .row{display:flex;align-items:center;gap:16px;margin:18px 0 8px}
+    .dot{
+      width:14px;height:14px;border-radius:50%;
+      background:var(--accent);
+      box-shadow:0 0 0 0 rgba(124,140,255,.5);
+      animation:pulse 1.6s infinite;
+      flex:0 0 auto;
+    }
+    .bar{
+      margin-top:16px;height:8px;border-radius:999px;
+      background:rgba(255,255,255,.12);overflow:hidden;
+    }
+    .bar > span{
+      display:block;height:100%;width:38%;
+      background:linear-gradient(90deg,#6f7cff,#9ca7ff);
+      animation:move 2.2s ease-in-out infinite;
+      border-radius:999px;
+    }
+    .small{margin-top:14px;font-size:.92rem}
+    @keyframes pulse{
+      0%{box-shadow:0 0 0 0 rgba(124,140,255,.55)}
+      70%{box-shadow:0 0 0 12px rgba(124,140,255,0)}
+      100%{box-shadow:0 0 0 0 rgba(124,140,255,0)}
+    }
+    @keyframes move{
+      0%{transform:translateX(-120%)}
+      100%{transform:translateX(300%)}
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Stiamo migliorando CourseConnect</h1>
+    <p>
+      Il sistema è momentaneamente in aggiornamento per rilasciare miglioramenti di stabilità e nuove funzioni.
+      Torneremo online tra pochi minuti.
+    </p>
+    <div class="row">
+      <span class="dot" aria-hidden="true"></span>
+      <strong>Aggiornamento in corso</strong>
+    </div>
+    <div class="bar" aria-hidden="true"><span></span></div>
+    <p class="small">Puoi aggiornare questa pagina tra 1-2 minuti.</p>
+  </main>
+</body>
+</html>

@@ -47,6 +47,32 @@ if db_url.startswith('sqlite'):
 app.config.setdefault('SESSION_COOKIE_SAMESITE', 'Lax')
 app.config.setdefault('SESSION_COOKIE_SECURE', True)
 
+def _is_maintenance_mode_enabled() -> bool:
+    return os.environ.get('MAINTENANCE_MODE', '').strip().lower() in {'1', 'true', 'yes', 'on'}
+
+@app.before_request
+def maintenance_mode_guard():
+    """
+    Modalità manutenzione non invasiva:
+    - attiva solo su pagine web (non API),
+    - non blocca static/uploads/health,
+    - disattivata di default.
+    """
+    if not _is_maintenance_mode_enabled():
+        return None
+
+    path = request.path or '/'
+    if (
+        path.startswith('/api/')
+        or path.startswith('/uploads/')
+        or path.startswith('/static/')
+        or path == '/api/health'
+        or path == '/maintenance'
+    ):
+        return None
+
+    return render_template('maintenance.html'), 503
+
 # Uploads (immagini + video) - FIX COMPLETO
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.join(os.getcwd(), 'static', 'uploads'))
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'}
@@ -2800,6 +2826,12 @@ def delete_personal_workspace_block(block_id):
 def home():
     """Homepage"""
     return render_template('index.html')
+
+
+@app.route('/maintenance')
+def maintenance_page():
+    """Pagina informativa manutenzione (attivabile anche manualmente)."""
+    return render_template('maintenance.html'), 503
 
 
 # ========================================
