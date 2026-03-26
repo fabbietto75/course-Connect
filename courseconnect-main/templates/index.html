@@ -852,6 +852,11 @@
               </a></li>
             </ul>
           </li>
+          <li class="nav-item d-none d-lg-block" id="nav-logout" style="display:none;">
+            <a class="nav-link text-danger" href="#" onclick="logout()">
+              <i class="fas fa-sign-out-alt me-2"></i>Logout
+            </a>
+          </li>
           <li class="nav-item" id="nav-review" style="display:none;"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#reviewModal"><i class="fas fa-star me-2"></i>Lascia Recensione</a></li>
         </ul>
       </div>
@@ -2500,6 +2505,7 @@
       document.getElementById('nav-login').style.display='block'; 
       document.getElementById('nav-register').style.display='block'; 
       document.getElementById('nav-user').style.display='none'; 
+      document.getElementById('nav-logout').style.display='none';
       document.getElementById('nav-review').style.display='none'; 
       document.getElementById('nav-notifications').style.display='none';
       const nw = document.getElementById('nav-workspace');
@@ -2512,6 +2518,7 @@
       document.getElementById('nav-login').style.display='none'; 
       document.getElementById('nav-register').style.display='none'; 
       document.getElementById('nav-user').style.display='block'; 
+      document.getElementById('nav-logout').style.display='block';
       document.getElementById('nav-review').style.display='block'; 
       document.getElementById('nav-notifications').style.display='block';
       const nw = document.getElementById('nav-workspace');
