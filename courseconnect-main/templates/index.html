@@ -2378,6 +2378,7 @@
             currentUser=data.user; 
             showUserSection(); 
             loadPosts();
+            loadTestimonials();
             startNotificationPolling();
             if (getCourseIdFromUrl()) {
               handleCourseShareUrlParam();
@@ -2418,6 +2419,7 @@
           closeModal('loginModal'); 
           showUserSection(); 
           loadPosts();
+          loadTestimonials();
           startNotificationPolling();
           if (getCourseIdFromUrl()) {
             handleCourseShareUrlParam();
@@ -2467,6 +2469,7 @@
           closeModal('registerModal'); 
           showUserSection(); 
           loadPosts(); 
+          loadTestimonials();
           loadActiveUsers(); 
           startNotificationPolling();
           if (getCourseIdFromUrl()) {
@@ -3616,14 +3619,15 @@
           if (isEdit) {
             showAlert('Corso aggiornato con successo!', 'success');
             loadCoursesManager();
+            loadCoursesForUsers();
           } else {
             showAlert('Corso creato con successo!', 'success');
             const shareUrl = data.share_url || courseShareUrlFromId(data.course && data.course.id);
             const shareInp = document.getElementById('course-share-url-input');
             if (shareInp) shareInp.value = shareUrl;
             new bootstrap.Modal(document.getElementById('courseShareModal')).show();
-            const managerModal = bootstrap.Modal.getInstance(document.getElementById('coursesManagerModal'));
-            if (managerModal) loadCoursesManager();
+            loadCoursesManager();
+            loadCoursesForUsers();
           }
         } else {
           showAlert(data.error || (isEdit ? 'Errore durante l\'aggiornamento' : 'Errore durante la creazione'), 'danger');
