@@ -1,1 +1,1 @@
-web: gunicorn --chdir courseconnect-main --bind 0.0.0.0:$PORT --workers 1 --worker-class gthread --threads 2 --timeout 300 --graceful-timeout 30 app:app
+web: gunicorn --chdir courseconnect-main --bind 0.0.0.0:$PORT --workers 1 --worker-class gthread --threads 2 --keep-alive 30 --timeout 300 --graceful-timeout 60 --max-requests 1000 --max-requests-jitter 100 --worker-tmp-dir /dev/shm app:app
