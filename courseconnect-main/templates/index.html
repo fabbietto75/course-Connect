@@ -989,6 +989,9 @@
           <div class="sidebar glass-card" id="admin-panel" style="display:none;">
             <h5><i class="fas fa-cog me-2"></i>Pannello Admin</h5>
             <div class="d-grid gap-2">
+              <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#adminControlModal" onclick="openAdminControlCenter()">
+                <i class="fas fa-shield-alt me-2"></i>Centro Controllo Admin
+              </button>
               <button class="btn btn-outline-primary btn-sm" onclick="showCoursesManager()">
                 <i class="fas fa-book me-2"></i>Gestisci Corsi
               </button>
@@ -998,6 +1001,37 @@
               <button class="btn btn-outline-primary btn-sm" onclick="loadCourseStats()">
                 <i class="fas fa-chart-bar me-2"></i>Statistiche Corsi
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Control Center -->
+  <div class="modal fade" id="adminControlModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-shield-alt me-2"></i>Centro Controllo Admin</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="d-flex gap-2 flex-wrap mb-3">
+            <button class="btn btn-sm btn-outline-primary" onclick="loadAdminUsers()"><i class="fas fa-users me-1"></i>Utenti</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="loadAdminLiveFeed()"><i class="fas fa-bell me-1"></i>Feed Live</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="loadAdminSystemStatus()"><i class="fas fa-memory me-1"></i>Sistema</button>
+            <button class="btn btn-sm btn-outline-warning" id="admin-sound-btn" onclick="toggleAdminSounds()"><i class="fas fa-volume-up me-1"></i>Suoni ON</button>
+          </div>
+          <div id="admin-system-box" class="mb-3 small text-muted">Caricamento stato sistema...</div>
+          <div class="row">
+            <div class="col-lg-6">
+              <h6><i class="fas fa-users me-2"></i>Utenti registrati</h6>
+              <div id="admin-users-list" class="small text-muted">Caricamento utenti...</div>
+            </div>
+            <div class="col-lg-6">
+              <h6><i class="fas fa-stream me-2"></i>Notifiche/Post in tempo reale</h6>
+              <div id="admin-live-feed" class="small text-muted">Caricamento feed...</div>
             </div>
           </div>
         </div>
@@ -1753,6 +1787,9 @@
     let personalWorkspaceBlocksCache = [];
     let notificationPollingInterval = null; // Per polling notifiche
     let notificationPollInFlight = false;
+    let adminControlInterval = null;
+    let adminSoundsEnabled = true;
+    let lastAdminSeen = { postId: 0, notificationId: 0 };
 
     document.addEventListener('DOMContentLoaded', function(){ checkAuth(); setupEventListeners(); loadTestimonials(); });
 
@@ -2561,6 +2598,116 @@
 
     function updateUIForLoggedOutUser() {
       showGuestSection();
+    }
+
+    function adminBeep() {
+      if (!adminSoundsEnabled) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 840;
+        gain.gain.value = 0.03;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.08);
+      } catch (_e) {}
+    }
+
+    function toggleAdminSounds(){
+      adminSoundsEnabled = !adminSoundsEnabled;
+      const b = document.getElementById('admin-sound-btn');
+      if (!b) return;
+      b.innerHTML = adminSoundsEnabled
+        ? '<i class="fas fa-volume-up me-1"></i>Suoni ON'
+        : '<i class="fas fa-volume-mute me-1"></i>Suoni OFF';
+      b.className = adminSoundsEnabled ? 'btn btn-sm btn-outline-warning' : 'btn btn-sm btn-outline-secondary';
+    }
+
+    function openAdminControlCenter(){
+      if (!currentUser || !currentUser.is_admin) {
+        showAlert('Permessi admin richiesti', 'danger');
+        return;
+      }
+      loadAdminSystemStatus();
+      loadAdminUsers();
+      loadAdminLiveFeed();
+      if (adminControlInterval) clearInterval(adminControlInterval);
+      adminControlInterval = setInterval(() => {
+        loadAdminLiveFeed(true);
+        loadAdminSystemStatus();
+      }, 15000);
+    }
+
+    async function loadAdminUsers(){
+      const box = document.getElementById('admin-users-list');
+      if (!box) return;
+      box.innerHTML = 'Caricamento utenti...';
+      try{
+        const res = await fetch('/api/admin/users?limit=120', { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Errore');
+        const users = data.users || [];
+        box.innerHTML = users.map(u => `
+          <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+            <div><strong>${u.nome} ${u.cognome}</strong><div class="text-muted">@${u.username}</div></div>
+            <div class="text-end"><span class="badge bg-dark">${u.corso || '-'}</span>${u.is_admin ? '<div class="text-warning small">admin</div>' : ''}</div>
+          </div>
+        `).join('') || '<span class="text-muted">Nessun utente.</span>';
+      } catch(e){
+        box.innerHTML = `<span class="text-danger">${e.message}</span>`;
+      }
+    }
+
+    async function loadAdminSystemStatus(){
+      const box = document.getElementById('admin-system-box');
+      if (!box) return;
+      try{
+        const res = await fetch('/api/admin/system/status', { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Errore');
+        box.innerHTML = `
+          <div class="d-flex flex-wrap gap-3">
+            <span>Memoria processo: <strong>${data.memory_rss_mb} MB</strong></span>
+            <span>Disco usato: <strong>${data.disk_used_gb}/${data.disk_total_gb} GB</strong></span>
+            <span>Utenti: <strong>${data.users_count}</strong></span>
+            <span>Post: <strong>${data.posts_count}</strong></span>
+            <span>Commenti: <strong>${data.comments_count}</strong></span>
+            <span>Recensioni: <strong>${data.reviews_count}</strong></span>
+          </div>`;
+      } catch(e){
+        box.innerHTML = `<span class="text-danger">${e.message}</span>`;
+      }
+    }
+
+    async function loadAdminLiveFeed(silent=false){
+      const box = document.getElementById('admin-live-feed');
+      if (!box) return;
+      if (!silent) box.innerHTML = 'Caricamento feed...';
+      try{
+        const res = await fetch('/api/admin/live-feed?limit=20', { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Errore');
+        const nots = data.notifications || [];
+        const feedPosts = data.posts || [];
+        const latestPost = feedPosts[0]?.id || 0;
+        const latestNot = nots[0]?.id || 0;
+        if (silent && (latestPost > lastAdminSeen.postId || latestNot > lastAdminSeen.notificationId)) {
+          adminBeep();
+        }
+        lastAdminSeen.postId = Math.max(lastAdminSeen.postId, latestPost);
+        lastAdminSeen.notificationId = Math.max(lastAdminSeen.notificationId, latestNot);
+        box.innerHTML = `
+          <div class="mb-2"><strong>Ultimi Post</strong></div>
+          ${(feedPosts.slice(0,5)).map(p => `<div class="border rounded p-2 mb-2"><div><strong>#${p.id}</strong> ${p.author?.username || ''}</div><div class="text-muted">${(p.content || '').substring(0,80)}${(p.content || '').length>80?'...':''}</div><button class="btn btn-sm btn-outline-danger mt-1" onclick="deletePost(${p.id})">Rimuovi</button></div>`).join('') || '<div class="text-muted">Nessun post</div>'}
+          <div class="mt-3 mb-2"><strong>Ultime Notifiche</strong></div>
+          ${(nots.slice(0,8)).map(n => `<div class="border rounded p-2 mb-2">#${n.id} • ${n.notification_type} • ${formatDate(n.created_at)}</div>`).join('') || '<div class="text-muted">Nessuna notifica</div>'}
+        `;
+      } catch(e){
+        box.innerHTML = `<span class="text-danger">${e.message}</span>`;
+      }
     }
 
     // ======== POSTS FUNCTIONS ========
@@ -3977,6 +4124,15 @@
         createCourseModalEl.addEventListener('hidden.bs.modal', function() {
           editingCourseId = null;
           setCreateCourseModalMode(true);
+        });
+      }
+      const adminControlEl = document.getElementById('adminControlModal');
+      if (adminControlEl) {
+        adminControlEl.addEventListener('hidden.bs.modal', function() {
+          if (adminControlInterval) {
+            clearInterval(adminControlInterval);
+            adminControlInterval = null;
+          }
         });
       }
     });

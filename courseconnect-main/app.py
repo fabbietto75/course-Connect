@@ -9,7 +9,7 @@ from sqlalchemy import text, inspect
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
-import os, json, subprocess, mimetypes
+import os, json, subprocess, mimetypes, shutil, resource
 
 # ========================================
 # FLASK APP & CONFIG
@@ -571,6 +571,15 @@ def get_current_user():
     return db.session.get(User, uid)
 
 
+def _require_admin():
+    user = get_current_user()
+    if not user:
+        return None, (jsonify({'error': 'Login richiesto'}), 401)
+    if not user.is_admin:
+        return None, (jsonify({'error': 'Permessi admin richiesti'}), 403)
+    return user, None
+
+
 def _seed_data():
     """Popola dati essenziali + corsi demo"""
     # Crea admin se non esiste
@@ -1085,6 +1094,69 @@ def list_users():
         return jsonify({'users': [u.to_dict() for u in users]})
     except Exception as e:
         return jsonify({'error': f'Errore caricamento utenti: {str(e)}'}), 500
+
+
+@app.route('/api/admin/users', methods=['GET'])
+def admin_list_users():
+    """Elenco utenti completo (admin)."""
+    _admin, err = _require_admin()
+    if err:
+        return err
+    try:
+        limit = min(max(request.args.get('limit', 100, type=int), 1), 500)
+        users = User.query.order_by(User.created_at.desc()).limit(limit).all()
+        return jsonify({'users': [u.to_dict() for u in users], 'total': len(users)})
+    except Exception as e:
+        return jsonify({'error': f'Errore admin users: {str(e)}'}), 500
+
+
+@app.route('/api/admin/live-feed', methods=['GET'])
+def admin_live_feed():
+    """Feed live admin: notifiche, post, recensioni recenti."""
+    _admin, err = _require_admin()
+    if err:
+        return err
+    try:
+        limit = min(max(request.args.get('limit', 20, type=int), 1), 100)
+        notifications = Notification.query.order_by(Notification.created_at.desc()).limit(limit).all()
+        posts = Post.query.order_by(Post.created_at.desc()).limit(limit).all()
+        reviews = Review.query.order_by(Review.created_at.desc()).limit(limit).all()
+        return jsonify({
+            'notifications': [n.to_dict() for n in notifications],
+            'posts': [p.to_dict(_admin) for p in posts],
+            'reviews': [r.to_dict(_admin) for r in reviews],
+            'timestamp': datetime.utcnow().isoformat(),
+        })
+    except Exception as e:
+        return jsonify({'error': f'Errore admin feed: {str(e)}'}), 500
+
+
+@app.route('/api/admin/system/status', methods=['GET'])
+def admin_system_status():
+    """Stato sistema base (memoria/disco + conteggi)."""
+    _admin, err = _require_admin()
+    if err:
+        return err
+    try:
+        # Linux ru_maxrss in KB; su macOS in bytes. Convertiamo prudentemente in MB.
+        rss_raw = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        rss_mb = (rss_raw / 1024.0) if rss_raw > 10_000 else rss_raw / 1024.0
+        du = shutil.disk_usage(app.config['UPLOAD_FOLDER'])
+        return jsonify({
+            'memory_rss_mb': round(rss_mb, 2),
+            'disk_total_gb': round(du.total / (1024**3), 2),
+            'disk_used_gb': round(du.used / (1024**3), 2),
+            'disk_free_gb': round(du.free / (1024**3), 2),
+            'users_count': User.query.count(),
+            'posts_count': Post.query.count(),
+            'comments_count': Comment.query.count(),
+            'reviews_count': Review.query.count(),
+            'courses_count': Course.query.count(),
+            'notifications_count': Notification.query.count(),
+            'timestamp': datetime.utcnow().isoformat(),
+        })
+    except Exception as e:
+        return jsonify({'error': f'Errore status sistema: {str(e)}'}), 500
 
 
 # ======= POSTS =======
