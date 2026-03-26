@@ -3099,7 +3099,7 @@
       
       try{
         // Carica recensioni utenti
-        const res = await fetch('/api/reviews');
+        const res = await fetch('/api/reviews', { credentials: 'same-origin' });
         if(res.ok){
           const data = await res.json();
           reviews = data.reviews || [];
@@ -3133,7 +3133,10 @@
           }
         ];
         
-        const allTestimonials = [...staticTestimonials, ...reviews];
+        // In admin mode mostra prima recensioni reali, così l'eliminazione è immediata e chiara.
+        const allTestimonials = (currentUser && currentUser.is_admin)
+          ? [...reviews, ...staticTestimonials]
+          : [...staticTestimonials, ...reviews];
         renderTestimonials(allTestimonials);
         
       } catch(e){
@@ -3177,7 +3180,8 @@
       let html = '<div class="row">';
       testimonials.forEach(t => {
         const stars = '<i class="fas fa-star"></i>'.repeat(t.rating);
-        const adminDeleteBtn = (!t.isStatic && currentUser && currentUser.is_admin && t.id) ? `
+        const canDelete = !!(currentUser && currentUser.is_admin && t.id && (t.user_can_delete !== false) && !t.isStatic);
+        const adminDeleteBtn = canDelete ? `
           <button class="btn btn-sm btn-outline-danger mt-2" onclick="deleteReview(${t.id})" title="Elimina recensione">
             <i class="fas fa-trash me-1"></i>Elimina
           </button>
@@ -3304,7 +3308,11 @@
         return;
       }
       try{
-        const res = await fetch(`/api/reviews/${reviewId}`, { method: 'DELETE' });
+        let res = await fetch(`/api/reviews/${reviewId}`, { method: 'DELETE', credentials: 'same-origin' });
+        // Fallback se DELETE è bloccato da proxy/intermediari.
+        if (res.status === 404 || res.status === 405) {
+          res = await fetch(`/api/reviews/${reviewId}/delete`, { method: 'POST', credentials: 'same-origin' });
+        }
         const data = await res.json();
         if(res.ok){
           showAlert('Recensione eliminata con successo', 'success');

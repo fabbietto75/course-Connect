@@ -1560,6 +1560,12 @@ def delete_review(review_id):
         return jsonify({'error': f'Errore eliminazione recensione: {str(e)}'}), 500
 
 
+@app.route('/api/reviews/<int:review_id>/delete', methods=['POST'])
+def delete_review_post(review_id):
+    """Alias compatibilità: elimina recensione via POST (solo admin)."""
+    return delete_review(review_id)
+
+
 # ======= UPLOADS =======
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
